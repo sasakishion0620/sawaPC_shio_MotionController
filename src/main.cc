@@ -13,6 +13,7 @@ int main()
   ll sample_frequency = static_cast<ll>(atoi(mc::env::variable["sample_frequency"].c_str())); //Hz
   system_controller motion_control_system;
   motion_control_system.add_joint("../config/joints/4018_finger.json");
+  motion_control_system.add_joint("../config/joints/4018_finger.json");
   motion_control_system.add_end();
 
 #ifdef PCI_MODE
