@@ -16,8 +16,6 @@
 #define D(n) robot.joints[(n)].parameter[mc::damper]
 #define K(n) robot.joints[(n)].parameter[mc::spring]
 #define param(n) robot.joints[(n)].parameter
-FILE *ft;
-
 void mc::control::default_controller(robot_system &robot)
 {
   for (size_t i = 0; i < robot.joints.size(); ++i)
@@ -107,26 +105,17 @@ void mc::control::register_controller()
   // Record mode uses the same control law as remote
   controller[mc::Record] = controller[mc::remote];
 
-  // remote mode: inverse kinematics + PD control + DOB compensation
+  // Bilateral mode: remote control + EMS force feedback
   controller[mc::Bilateral] = [](robot_system &robot)
   {
     static double buf_cmd = 0.0;
     //Kita add
     static double dx_buf = 0.0;
     static double dx_cmd = 0.0;
-    static int time_count = 0;
-
-    if(time_count == 0)
-    {
-      char *fname = "result.csv";
-      ft = fopen(fname, "w");
-    }
-
     double r = robot.get_from_dict("link_length");    // link length [m]
     double g_cmd = robot.get_from_dict("g_cmd");       // command filter gain
     double max_dist = robot.get_from_dict("max_distance_mm"); // max distance [mm]
-    //double dt = robot.get_from_dict("dt");  // sampling period (set from system.json)
-    double dt = 0.0001;
+    double dt = robot.get_from_dict("dt");  // sampling period (set from system.json)
 
     // mode switch reset: initialize buf_cmd to current position
     if (robot.step() == 0)
@@ -159,7 +148,6 @@ void mc::control::register_controller()
     // command filter: first-order low-pass
     buf_cmd += dt * g_cmd * (theta_cmd_raw - buf_cmd);
     double theta_cmd = buf_cmd;
-    //double theta_cmd = M_PI * 30.0 / 180.0 * sin(2.0 * M_PI * 0.5 * time_count * 0.0001);
 
     //Kita add
     dx_cmd = g_cmd * (theta_cmd - dx_buf);
@@ -176,13 +164,29 @@ void mc::control::register_controller()
       f_out(i) = f_vol(i);
     }
 
-    if(time_count % 10 == 0){
-    fprintf(ft, "%lf, %lf, %lf, %lf, %lf, %lf\n", time_count * 0.0001, theta_cmd, x_res(0), dx_res(0), theta_cmd_raw, f_dis(0));//buf_cmd);
-    }
-    time_count++;
-    if(time_count == 200000)
+    // EMS voltage calculation from f_dis(0)
     {
-      fclose(ft);
+      double f_threshold = robot.get_from_dict("ems_force_threshold");
+      double f_max       = robot.get_from_dict("ems_force_max");
+      double v_th        = robot.get_from_dict("ems_voltage_threshold");
+      double v_max       = robot.get_from_dict("ems_voltage_max");
+
+      double v_ems = 0.0;
+      if (f_dis(0) >= f_threshold)
+      {
+        double denom = f_max - f_threshold;
+        if (denom > 1e-9)
+          v_ems = v_th + (v_max - v_th) / denom * (f_dis(0) - f_threshold);
+        else
+          v_ems = v_max;
+      }
+      if (v_ems < 0.0)   v_ems = 0.0;
+      if (v_ems > v_max) v_ems = v_max;
+
+      f_out(1) = v_ems;
+      robot.set_to_dict("da_ch1_voltage", v_ems);
+      robot.set_to_dict("ems_voltage", v_ems);
     }
+
   };
 }

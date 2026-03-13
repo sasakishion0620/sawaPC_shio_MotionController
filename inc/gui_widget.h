@@ -159,9 +159,29 @@ namespace mc {
     }
     static void da_voltage_control(robot_system *robot_system_ptr)
     {
-      static float v = 0.0f;
-      ImGui::SliderFloat("ch1 voltage [V]", &v, -10.0f, 10.0f);
-      robot_system_ptr->set_to_dict("da_ch1_voltage", static_cast<double>(v));
+      static mc::control_mode prev_mode = mc::idle;
+      mc::control_mode cur_mode = static_cast<mc::control_mode>(robot_system_ptr->get_control_mode());
+      if (cur_mode == mc::Bilateral && prev_mode != mc::Bilateral)
+      {
+        robot_system_ptr->set_to_dict("da_ch1_voltage", 0.0);
+      }
+      prev_mode = cur_mode;
+
+      if (robot_system_ptr->get_control_mode() == mc::Bilateral)
+      {
+        double v_ems = robot_system_ptr->get_from_dict("ems_voltage");
+        double f_dis_val = robot_system_ptr->joints[0].data[mc::response][mc::f_dis];
+        ImGui::Text("EMS voltage: %.3f V", v_ems);
+        ImGui::Text("f_dis(0): %.3f", f_dis_val);
+      }
+      else
+      {
+        static float v = 0.0f;
+        ImGui::InputFloat("ch1 voltage [V]", &v, 0.1f, 0.5f, "%.2f");
+        if (v < 0.0f) v = 0.0f;
+        if (v > 3.3f) v = 3.3f;
+        robot_system_ptr->set_to_dict("da_ch1_voltage", static_cast<double>(v));
+      }
     }
   };
 } // namespace mc

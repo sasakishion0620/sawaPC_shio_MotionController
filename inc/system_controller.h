@@ -43,6 +43,7 @@ public:
     open_udp_receiver();
     // load remote config
     load_remote_config();
+    load_ems_config();
     task_registration();
     std::cout << "constructor system controller" << std::endl;
   }
@@ -229,6 +230,27 @@ private:
       robot_.set_to_dict("link_length", 0.0725);
       robot_.set_to_dict("g_cmd", 60.0);
       robot_.set_to_dict("max_distance_mm", 145.0);
+    }
+  }
+
+  void load_ems_config()
+  {
+    try
+    {
+      boost::property_tree::ptree pt;
+      boost::property_tree::read_json("../config/ems.json", pt);
+      robot_.set_to_dict("ems_force_threshold",   pt.get<double>("force_threshold",   0.5));
+      robot_.set_to_dict("ems_force_max",         pt.get<double>("force_max",         20.0));
+      robot_.set_to_dict("ems_voltage_threshold", pt.get<double>("voltage_threshold", 0.5));
+      robot_.set_to_dict("ems_voltage_max",       pt.get<double>("voltage_max",       3.3));
+    }
+    catch (...)
+    {
+      std::cerr << "[system_controller] ems.json not found, using defaults" << std::endl;
+      robot_.set_to_dict("ems_force_threshold",   0.5);
+      robot_.set_to_dict("ems_force_max",         20.0);
+      robot_.set_to_dict("ems_voltage_threshold", 0.5);
+      robot_.set_to_dict("ems_voltage_max",       3.3);
     }
   }
 };
