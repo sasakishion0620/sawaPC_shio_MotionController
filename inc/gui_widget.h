@@ -157,6 +157,12 @@ namespace mc {
         ImPlot::EndPlot();
       }
     }
+    static void da_voltage_control(robot_system *robot_system_ptr)
+    {
+      static float v = 0.0f;
+      ImGui::SliderFloat("ch1 voltage [V]", &v, -10.0f, 10.0f);
+      robot_system_ptr->set_to_dict("da_ch1_voltage", static_cast<double>(v));
+    }
   };
 } // namespace mc
 #endif //TELEOPHAND_GUI_WIDGET_H

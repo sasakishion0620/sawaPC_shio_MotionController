@@ -16,15 +16,28 @@ public:
   const int SUCCESS = 0;
   const int FAIL = 1;
   // method
-  contec_da(size_t start_channel, size_t number_of_channel, robot_system *robot, const char *config_file_name)
+  contec_da(size_t start_channel, size_t number_of_channel, robot_system *robot, const char *config_file_name,
+            size_t total_hw_channels = 0)
   :writer<T>(start_channel, number_of_channel, robot, mc::voltage),
-  da_output_(writer<T>::number_of_channel_),
+  robot_ptr_(robot),
+  total_hw_channels_(total_hw_channels > 0 ? total_hw_channels : number_of_channel),
+  da_output_(total_hw_channels_),
   config_file_name_(config_file_name)
   {
+    if (total_hw_channels_ > max_hw_channels_)
+    {
+      std::cerr << "[contec_da] total_hw_channels (" << total_hw_channels_
+                << ") exceeds board limit (" << max_hw_channels_ << "), clamped" << std::endl;
+      total_hw_channels_ = max_hw_channels_;
+    }
     da_resolution_decimal_ = NBitInDecimal(da_resolution_bit_) - 1;
-    for(size_t i = 0; i < writer<T>::number_of_channel_; ++i)
+    for(size_t i = 0; i < total_hw_channels_; ++i)
     {
       da_output_[i] = da_resolution_decimal_ / 2 ;
+    }
+    for(size_t i = writer<T>::number_of_channel_; i < total_hw_channels_; ++i)
+    {
+      direct_ch_keys_.push_back("da_ch" + std::to_string(i) + "_voltage");
     }
 
     open();
@@ -69,6 +82,13 @@ public:
       //*(writer<T>::channel_ptr(i)) is joint.data[output][voltage]
       da_output_[i] = (*(writer<T>::channel_ptr(i)) + voltage_range_/2.0)/voltage_range_*da_resolution_decimal_;
     }
+    // direct output channels (not tied to joints)
+    for(size_t i = 0; i < direct_ch_keys_.size(); ++i)
+    {
+      size_t ch = writer<T>::number_of_channel_ + i;
+      double v = robot_ptr_->get_from_dict(direct_ch_keys_[i].c_str());
+      da_output_[ch] = (v + voltage_range_/2.0)/voltage_range_*da_resolution_decimal_;
+    }
     return SUCCESS;
   }
 
@@ -79,7 +99,7 @@ public:
 
     //Open Gate for Da Board for sampling
     outl(0x20000001,da_pci_.base0+0x30);
-    for(size_t i = 0; i < writer<T>::number_of_channel_ ; ++i)
+    for(size_t i = 0; i < total_hw_channels_ ; ++i)
     {
       tmp = static_cast<unsigned int>(da_output_[i]);
       outw(tmp,da_pci_.base0+0x08);
@@ -112,7 +132,7 @@ public:
 
   void zero()
   {
-    for(size_t i = 0 ;i < writer<T>::number_of_channel_; ++i)
+    for(size_t i = 0 ;i < total_hw_channels_; ++i)
       outw(static_cast<unsigned int>((0 + voltage_range_ / 2.0) * da_resolution_decimal_ / voltage_range_), da_pci_.base0+0x08);
 
     outl(0x20000001,da_pci_.base0+0x30);
@@ -134,12 +154,16 @@ public:
   }
 
 private:
+  robot_system *robot_ptr_;
+  size_t total_hw_channels_;
   T da_resolution_decimal_;
+  static constexpr size_t max_hw_channels_ = 16;
   const int da_resolution_bit_ = 16;
   T voltage_range_;
   contec_da_device_set da_pci_;
   std::vector<unsigned short> da_output_;
   std::string config_file_name_;
+  std::vector<std::string> direct_ch_keys_;
   std::string vendor_id_;
   std::string device_id_;
 
@@ -181,7 +205,7 @@ private:
     //Open 16ch
     //outw(0x000f, addr + 0x34);//0x0000-0x000fで1ch-16ch
     //outw(0x0007, addr + 0x34);//0x0000-0x0007で1ch-8ch
-    outw(writer<T>::number_of_channel_ - 0x0001, addr + 0x34);//0x0000-0x0007で1ch-8ch
+    outw(total_hw_channels_ - 0x0001, addr + 0x34);//0x0000-0x0007で1ch-8ch
   }
 
   void reset_da_board(int addr){

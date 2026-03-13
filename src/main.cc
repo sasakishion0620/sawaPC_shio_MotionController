@@ -17,7 +17,7 @@ int main()
 
 #ifdef PCI_MODE
   contec_counter<double> counter1(0, 1, motion_control_system.get_robot(), "../config/contec_counter1.json");
-  contec_da<double> da(0, 1, motion_control_system.get_robot(), "../config/contec_da1.json");
+  contec_da<double> da(0, 1, motion_control_system.get_robot(), "../config/contec_da1.json", 2);
   motion_control_system.add_reader(&counter1);
   motion_control_system.add_writer(&da);
 #endif
