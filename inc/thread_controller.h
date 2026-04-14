@@ -3,6 +3,7 @@
 #include <iostream>
 #include <vector>
 #include <thread>
+#include <atomic>
 #include <unordered_map>
 #include "control_timer.h"
 #include "system_controller.h"
@@ -19,7 +20,7 @@ class thread_controller
 private:
   std::vector<std::thread> threads_;
   std::thread timer_thread_;
-  bool should_finish_all_;
+  std::atomic<bool> should_finish_all_;
   control_timer timer_;
   std::vector<long long int> thread_id_to_sampling_frequency;
   std::unordered_map<long long int, std::vector<int>> frequency_to_thread_id;
@@ -107,7 +108,7 @@ private:
   void all_loop_of_task(mc::thread::thread_list thread_id)
   {
       if ((system_controller_ptr_->tasks_[thread_id](0)) == system_controller::FINISH)
-        should_finish_all_ = true;
+        should_finish_all_.store(true);
   }
 
   void print_config(thread_config &config)
