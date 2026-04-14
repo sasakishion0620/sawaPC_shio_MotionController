@@ -188,8 +188,6 @@ void system_controller::task_registration()
     gui_.register_widget("display_status", widget::display_status, true);
     gui_.register_widget("control_mode_selection", widget::control_mode_selection, true);
     gui_.register_widget("plot_state", widget::plot_state, true);
-    gui_.register_widget("finger_tracker_status", widget::finger_tracker_status, true);
-    gui_.register_widget("da_voltage_control", widget::da_voltage_control, true);
 
     // the draw method will holding thread until 'exit' button or 'q' are pressed.
     if (gui_.draw() == gui::SUCCEESS)

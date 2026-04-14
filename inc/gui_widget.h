@@ -44,77 +44,37 @@ namespace mc {
   public:
     static void display_status(robot_system *robot_system_ptr)
     {
-      ImGui::Columns(3, "takt time");
-      ImGui::Text("Mode: %d ", robot_system_ptr->get_control_mode());
-      ImGui::NextColumn();
-      ImGui::Text("Compute: %lld [us]", robot_system_ptr->task_takt_times[mc::thread::compute_engine]);
-      ImGui::NextColumn();
-      ImGui::Text("Sensor: %lld [us]", robot_system_ptr->timer_sampling_times[mc::thread::read_sensor]);
-      ImGui::Separator();
-      ImGui::Columns(1);
-
-      if (!robot_system_ptr->joints.empty())
+      if (robot_system_ptr->joints.empty())
       {
-        const char *force_sensor_status = "DISABLED";
-        if (robot_system_ptr->force_sensor_enabled)
-          force_sensor_status = robot_system_ptr->force_sensor_connected ? "CONNECTED" : "NOT CONNECTED";
-        const double fz = robot_system_ptr->joints.at(0).data[mc::response][mc::Fz];
-        ImGui::Text("Force Sensor Status: %s", force_sensor_status);
-        ImGui::Separator();
-        ImGui::Text("Instant Fz");
-        ImGui::PushStyleColor(
-          ImGuiCol_Text,
-          (robot_system_ptr->force_sensor_enabled && robot_system_ptr->force_sensor_connected)
-            ? ImVec4(0.85f, 0.95f, 0.40f, 1.0f)
-            : ImVec4(0.65f, 0.65f, 0.65f, 1.0f)
-        );
-        ImGui::SetWindowFontScale(1.6f);
-        ImGui::Text("%+.3f", fz);
+        ImGui::Text("Force sensor data unavailable");
+        return;
+      }
+
+      const bool force_sensor_connected = robot_system_ptr->force_sensor_enabled && robot_system_ptr->force_sensor_connected;
+      const ImVec4 value_color = force_sensor_connected
+        ? ImVec4(0.90f, 0.95f, 0.35f, 1.0f)
+        : ImVec4(0.60f, 0.60f, 0.60f, 1.0f);
+      const char *labels[6] = {"Fx", "Fy", "Fz", "Mx", "My", "Mz"};
+      const double values[6] = {
+        robot_system_ptr->joints.at(0).data[mc::response][mc::Fx],
+        robot_system_ptr->joints.at(0).data[mc::response][mc::Fy],
+        robot_system_ptr->joints.at(0).data[mc::response][mc::Fz],
+        robot_system_ptr->joints.at(0).data[mc::response][mc::Mx],
+        robot_system_ptr->joints.at(0).data[mc::response][mc::My],
+        robot_system_ptr->joints.at(0).data[mc::response][mc::Mz]
+      };
+
+      ImGui::Columns(6, "force_sensor_values");
+      for (int i = 0; i < 6; ++i)
+      {
+        ImGui::Text("%s", labels[i]);
+        ImGui::SetWindowFontScale(1.8f);
+        ImGui::TextColored(value_color, "%+.3f", values[i]);
         ImGui::SetWindowFontScale(1.0f);
-        ImGui::PopStyleColor();
-        ImGui::Text(
-          "Force Sensor: Fx=%+.3f Fy=%+.3f Fz=%+.3f",
-          robot_system_ptr->joints.at(0).data[mc::response][mc::Fx],
-          robot_system_ptr->joints.at(0).data[mc::response][mc::Fy],
-          fz
-        );
-        ImGui::Text(
-          "Torque Sensor: Mx=%+.3f My=%+.3f Mz=%+.3f",
-          robot_system_ptr->joints.at(0).data[mc::response][mc::Mx],
-          robot_system_ptr->joints.at(0).data[mc::response][mc::My],
-          robot_system_ptr->joints.at(0).data[mc::response][mc::Mz]
-        );
+        if (i < 5)
+          ImGui::NextColumn();
       }
-
-      ImGui::Columns(5, "motion_header_column");
-      ImGui::Text(" ");
-      ImGui::NextColumn();
-      ImGui::Text("position");
-      ImGui::NextColumn();
-      ImGui::Text("velocity");
-      ImGui::NextColumn();
-      ImGui::Text("force");
-      ImGui::NextColumn();
-      ImGui::Text("theta_cmd");
-      ImGui::NextColumn();
       ImGui::Columns(1);
-      ImGui::Separator();
-
-      for (size_t i = 0; i < robot_system_ptr->joints.size(); ++i)
-      {
-        ImGui::Columns(5, "motion_display_column");
-        ImGui::Text("joint %zu", i);
-        ImGui::NextColumn();
-        ImGui::Text("%+05.5lf", robot_system_ptr->joints.at(i).data[mc::response][mc::x]);
-        ImGui::NextColumn();
-        ImGui::Text("%+05.5lf", robot_system_ptr->joints.at(i).data[mc::response][mc::dx]);
-        ImGui::NextColumn();
-        ImGui::Text("%+05.5lf", robot_system_ptr->joints.at(i).data[mc::response][mc::f_dis]);
-        ImGui::NextColumn();
-        ImGui::Text("%+05.5lf", robot_system_ptr->get_from_dict("theta_cmd"));
-        ImGui::NextColumn();
-        ImGui::Columns(1);
-      }
     }
 
     static void control_mode_selection(robot_system *robot_system_ptr)
@@ -134,112 +94,59 @@ namespace mc {
       }
     }
 
-#define x_res(n) robot_system_ptr->joints[(n)].data[mc::response][mc::x]
-#define f_dis(n) robot_system_ptr->joints[(n)].data[mc::response][mc::f_dis]
+#define Fx(n) robot_system_ptr->joints[(n)].data[mc::response][mc::Fx]
+#define Fy(n) robot_system_ptr->joints[(n)].data[mc::response][mc::Fy]
 #define Fz(n) robot_system_ptr->joints[(n)].data[mc::response][mc::Fz]
+#define Mx(n) robot_system_ptr->joints[(n)].data[mc::response][mc::Mx]
+#define My(n) robot_system_ptr->joints[(n)].data[mc::response][mc::My]
+#define Mz(n) robot_system_ptr->joints[(n)].data[mc::response][mc::Mz]
     static void plot_state(robot_system *robot_system_ptr)
     {
-      static std::vector<scrolling_buffer> sdata_vec(4);
-      static float history = 2.0f;
+      if (robot_system_ptr->joints.empty())
+      {
+        ImGui::Text("No signal to plot");
+        return;
+      }
+
+      static std::vector<scrolling_buffer> sdata_vec(6);
+      static float history = 5.0f;
 
       gui_time += ImGui::GetIO().DeltaTime;
       float t = gui_time;
       const bool force_sensor_connected = robot_system_ptr->force_sensor_enabled && robot_system_ptr->force_sensor_connected;
-      const double fz_now = robot_system_ptr->joints.empty()
-        ? 0.0
-        : robot_system_ptr->joints.at(0).data[mc::response][mc::Fz];
-      sdata_vec[0].add_point(t, static_cast<float>(x_res(0)));
-      sdata_vec[1].add_point(t, static_cast<float>(f_dis(0)));
-      sdata_vec[2].add_point(t, static_cast<float>(robot_system_ptr->get_from_dict("theta_cmd")));
-      sdata_vec[3].add_point(t, static_cast<float>(Fz(0)));
-
-      ImGui::Text("Force Sensor");
-      ImGui::SameLine();
-      ImGui::TextColored(
-        force_sensor_connected ? ImVec4(0.45f, 0.95f, 0.45f, 1.0f) : ImVec4(0.95f, 0.45f, 0.45f, 1.0f),
-        force_sensor_connected ? "CONNECTED" : "NOT CONNECTED"
-      );
-      ImGui::SetWindowFontScale(2.4f);
-      ImGui::TextColored(
-        force_sensor_connected ? ImVec4(0.90f, 0.95f, 0.35f, 1.0f) : ImVec4(0.65f, 0.65f, 0.65f, 1.0f),
-        "Fz %+.3f",
-        fz_now
-      );
-      ImGui::SetWindowFontScale(1.0f);
-      ImGui::Separator();
+      sdata_vec[0].add_point(t, static_cast<float>(Fx(0)));
+      sdata_vec[1].add_point(t, static_cast<float>(Fy(0)));
+      sdata_vec[2].add_point(t, static_cast<float>(Fz(0)));
+      sdata_vec[3].add_point(t, static_cast<float>(Mx(0)));
+      sdata_vec[4].add_point(t, static_cast<float>(My(0)));
+      sdata_vec[5].add_point(t, static_cast<float>(Mz(0)));
 
       ImPlot::SetNextPlotLimitsX(t - history, t + history, ImGuiCond_Always);
-      ImPlot::SetNextPlotLimitsY(-1, 1);
-      if (sdata_vec[0].data.size() > 0 && ImPlot::BeginPlot("position / command", "time[sec]", "x[rad]", ImVec2(-1, 240)))
+      if (sdata_vec[0].data.size() > 0 && ImPlot::BeginPlot("Force", "time [sec]", "force", ImVec2(-1, 320)))
       {
-        ImPlot::PlotLine("theta_res", &sdata_vec[0].data[0].x, &sdata_vec[0].data[0].y, sdata_vec[0].data.size(), sdata_vec[0].offset, 2*sizeof(float));
-        if (sdata_vec[2].data.size() > 0)
-          ImPlot::PlotLine("theta_cmd", &sdata_vec[2].data[0].x, &sdata_vec[2].data[0].y, sdata_vec[2].data.size(), sdata_vec[2].offset, 2*sizeof(float));
+        ImPlot::PlotLine("Fx", &sdata_vec[0].data[0].x, &sdata_vec[0].data[0].y, sdata_vec[0].data.size(), sdata_vec[0].offset, 2*sizeof(float));
+        ImPlot::PlotLine("Fy", &sdata_vec[1].data[0].x, &sdata_vec[1].data[0].y, sdata_vec[1].data.size(), sdata_vec[1].offset, 2*sizeof(float));
+        if (force_sensor_connected)
+          ImPlot::PlotLine("Fz", &sdata_vec[2].data[0].x, &sdata_vec[2].data[0].y, sdata_vec[2].data.size(), sdata_vec[2].offset, 2*sizeof(float));
         ImPlot::EndPlot();
       }
 
       ImPlot::SetNextPlotLimitsX(t - history, t + history, ImGuiCond_Always);
-      ImPlot::SetNextPlotLimitsY(-1, 1);
-      if (sdata_vec[1].data.size() > 0 && ImPlot::BeginPlot("force", "time[sec]", "f[Nm]", ImVec2(-1, 180)))
+      if (sdata_vec[3].data.size() > 0 && ImPlot::BeginPlot("Moment", "time [sec]", "moment", ImVec2(-1, 320)))
       {
-        ImPlot::PlotLine("f_dis", &sdata_vec[1].data[0].x, &sdata_vec[1].data[0].y, sdata_vec[1].data.size(), sdata_vec[1].offset, 2*sizeof(float));
-        if (force_sensor_connected && sdata_vec[3].data.size() > 0)
-          ImPlot::PlotLine("Fz", &sdata_vec[3].data[0].x, &sdata_vec[3].data[0].y, sdata_vec[3].data.size(), sdata_vec[3].offset, 2*sizeof(float));
+        ImPlot::PlotLine("Mx", &sdata_vec[3].data[0].x, &sdata_vec[3].data[0].y, sdata_vec[3].data.size(), sdata_vec[3].offset, 2*sizeof(float));
+        ImPlot::PlotLine("My", &sdata_vec[4].data[0].x, &sdata_vec[4].data[0].y, sdata_vec[4].data.size(), sdata_vec[4].offset, 2*sizeof(float));
+        if (force_sensor_connected)
+          ImPlot::PlotLine("Mz", &sdata_vec[5].data[0].x, &sdata_vec[5].data[0].y, sdata_vec[5].data.size(), sdata_vec[5].offset, 2*sizeof(float));
         ImPlot::EndPlot();
       }
     }
-#undef x_res
-#undef f_dis
+#undef Fx
+#undef Fy
 #undef Fz
-
-    static void finger_tracker_status(robot_system *robot_system_ptr)
-    {
-      static scrolling_buffer dist_buf;
-      static float history = 5.0f;
-
-      float t = gui_time;
-      double distance_mm = robot_system_ptr->get_from_dict("distance_mm");
-      double packet_count = robot_system_ptr->get_from_dict("packet_count");
-
-      ImGui::Text("distance: %.1f mm", distance_mm);
-      ImGui::Text("packets: %.0f", packet_count);
-      ImGui::Text("recording: %s", robot_system_ptr->is_recording ? "YES" : "no");
-      dist_buf.add_point(t, static_cast<float>(distance_mm));
-
-      ImPlot::SetNextPlotLimitsX(t - history, t + history, ImGuiCond_Always);
-      ImPlot::SetNextPlotLimitsY(0, 200);
-      if (dist_buf.data.size() > 0 && ImPlot::BeginPlot("finger distance", "time[sec]", "dist[mm]", ImVec2(-1, 200)))
-      {
-        ImPlot::PlotLine("distance_mm", &dist_buf.data[0].x, &dist_buf.data[0].y, dist_buf.data.size(), dist_buf.offset, 2*sizeof(float));
-        ImPlot::EndPlot();
-      }
-    }
-    static void da_voltage_control(robot_system *robot_system_ptr)
-    {
-      static mc::control_mode prev_mode = mc::idle;
-      mc::control_mode cur_mode = static_cast<mc::control_mode>(robot_system_ptr->get_control_mode());
-      if (cur_mode == mc::Bilateral && prev_mode != mc::Bilateral)
-      {
-        robot_system_ptr->set_to_dict("da_ch1_voltage", 0.0);
-      }
-      prev_mode = cur_mode;
-
-      if (robot_system_ptr->get_control_mode() == mc::Bilateral)
-      {
-        double v_ems = robot_system_ptr->get_from_dict("ems_voltage");
-        double f_dis_val = robot_system_ptr->joints[0].data[mc::response][mc::f_dis];
-        ImGui::Text("EMS voltage: %.3f V", v_ems);
-        ImGui::Text("f_dis(0): %.3f", f_dis_val);
-      }
-      else
-      {
-        static float v = 0.0f;
-        ImGui::InputFloat("ch1 voltage [V]", &v, 0.1f, 0.5f, "%.2f");
-        if (v < 0.0f) v = 0.0f;
-        if (v > 3.3f) v = 3.3f;
-        robot_system_ptr->set_to_dict("da_ch1_voltage", static_cast<double>(v));
-      }
-    }
+#undef Mx
+#undef My
+#undef Mz
   };
 } // namespace mc
 #endif //TELEOPHAND_GUI_WIDGET_H
