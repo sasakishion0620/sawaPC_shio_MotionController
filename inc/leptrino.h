@@ -1,3 +1,6 @@
+#ifndef MOTIONCONTROL_LEPTRINO_H
+#define MOTIONCONTROL_LEPTRINO_H
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -67,3 +70,5 @@ public:
 	void Comm_Close();
 	void Comm_Rcv(void);
 };
+
+#endif // MOTIONCONTROL_LEPTRINO_H

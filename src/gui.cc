@@ -17,7 +17,7 @@ GLFWwindow *reset_and_open_window(const std::string window_name)
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 
-  const GLFWmonitor* primary_monitor = glfwGetPrimaryMonitor();
+  GLFWmonitor* primary_monitor = glfwGetPrimaryMonitor();
   const GLFWvidmode* mode = (primary_monitor != nullptr) ? glfwGetVideoMode(primary_monitor) : nullptr;
   const int window_width = (mode != nullptr) ? mode->width : 1280;
   const int window_height = (mode != nullptr) ? mode->height : 720;

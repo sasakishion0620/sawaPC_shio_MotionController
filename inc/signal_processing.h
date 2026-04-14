@@ -7,7 +7,7 @@ namespace mc {
   class signal
   {
   public:
-    static void low_pass_filter(T dt, T cutoff_frequency, T &output, T &input, T &buf)
+    static void low_pass_filter(T dt, T cutoff_frequency, T &output, const T &input, T &buf)
     {
       buf += dt * (input - output);
       output = cutoff_frequency * (buf);
