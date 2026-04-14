@@ -1,4 +1,10 @@
 #include "gui.h"
+#include <atomic>
+
+namespace
+{
+  std::atomic<bool> force_exit_requested{false};
+}
 
 GLFWwindow *reset_and_open_window(const std::string window_name)
 {
@@ -94,9 +100,15 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     if (key == GLFW_KEY_Q && action == GLFW_PRESS)
     {
       std::cout << "Q key!!" << std::endl ;
+      force_exit_requested.store(true);
       glfwSetWindowShouldClose(window, GL_TRUE);
       std::cout << "Close !!" << std::endl ;
     }
+}
+
+bool gui_force_exit_requested()
+{
+  return force_exit_requested.load();
 }
 
 void gui::show_widgets(const std::string &widget_name)

@@ -2,6 +2,7 @@
 #define MOTIONCONTROL_GUI_H
 #include <unistd.h>
 #include <iostream>
+#include <cstdlib>
 #include <unordered_map>
 #include <GL/gl3w.h>
 #include <GLFW/glfw3.h>
@@ -18,6 +19,7 @@ void initialize_gui(GLFWwindow *window);
 void clean_up_window(GLFWwindow *window);
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
+bool gui_force_exit_requested();
 
 class gui
 {
@@ -45,6 +47,8 @@ public:
       usleep(SLEEP_MICRO_TIME);
     }
     clean_up_window(window_ptr_);
+    if (gui_force_exit_requested())
+      std::exit(0);
     return SUCCEESS;
   }
 
