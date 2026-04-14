@@ -3,6 +3,7 @@
 #include <iostream>
 #include <vector>
 #include <unordered_map>
+#include <array>
 #include "joint.hpp"
 #include "mode_definition.h"
 
@@ -17,6 +18,10 @@ public:
   bool is_recording = false;
   bool force_sensor_enabled = false;
   bool force_sensor_connected = false;
+  static constexpr size_t force_offset_sample_count = 1000;
+  std::array<double, 6> force_offset_sum = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  size_t force_offset_samples = 0;
+  bool force_offset_init_done = false;
 
   // method
   robot_system()
@@ -40,6 +45,12 @@ public:
   void increase_control_step(){ control_step_++;}
   void reset_control_step(){ control_step_ = 0;}
   long long int step(){ return control_step_; }
+  void reset_force_offset_init()
+  {
+    force_offset_sum.fill(0.0);
+    force_offset_samples = 0;
+    force_offset_init_done = false;
+  }
   void set_to_dict(const char *key, double value){general_dictionary_[key] = value;}
   double get_from_dict(const char *key)
   {

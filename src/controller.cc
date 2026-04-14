@@ -17,6 +17,19 @@
 #define K(n) robot.joints[(n)].parameter[mc::spring]
 #define param(n) robot.joints[(n)].parameter
 
+#define Fx(n) robot.joints[(n)].data[mc::response][mc::Fx]
+#define Fy(n) robot.joints[(n)].data[mc::response][mc::Fy]
+#define Fz(n) robot.joints[(n)].data[mc::response][mc::Fz]
+#define Mx(n) robot.joints[(n)].data[mc::response][mc::Mx]
+#define My(n) robot.joints[(n)].data[mc::response][mc::My]
+#define Mz(n) robot.joints[(n)].data[mc::response][mc::Mz]
+#define Fx_offset(n) robot.joints[(n)].data[mc::offset][mc::Fx]
+#define Fy_offset(n) robot.joints[(n)].data[mc::offset][mc::Fy]
+#define Fz_offset(n) robot.joints[(n)].data[mc::offset][mc::Fz]
+#define Mx_offset(n) robot.joints[(n)].data[mc::offset][mc::Mx]
+#define My_offset(n) robot.joints[(n)].data[mc::offset][mc::My]
+#define Mz_offset(n) robot.joints[(n)].data[mc::offset][mc::Mz]
+
 void mc::control::default_controller(robot_system &robot)
 {
   for (size_t i = 0; i < robot.joints.size(); ++i)
@@ -40,6 +53,59 @@ void mc::control::register_controller()
     for (size_t i = 0; i < robot.joints.size(); ++i)
     {
       f_out(i) = 0.3;
+    }
+  };
+
+  controller[mc::ForceOffsetInit] = [](robot_system &robot)
+  {
+    for (size_t i = 0; i < robot.joints.size(); ++i)
+    {
+      f_out(i) = 0.0;
+    }
+
+    if (robot.step() == 0)
+    {
+      robot.reset_force_offset_init();
+    }
+
+    if (!robot.force_sensor_connected || robot.joints.empty())
+    {
+      return;
+    }
+
+    if (robot.force_offset_samples < robot_system::force_offset_sample_count)
+    {
+      robot.force_offset_sum[0] += Fx(0);
+      robot.force_offset_sum[1] += Fy(0);
+      robot.force_offset_sum[2] += Fz(0);
+      robot.force_offset_sum[3] += Mx(0);
+      robot.force_offset_sum[4] += My(0);
+      robot.force_offset_sum[5] += Mz(0);
+      robot.force_offset_samples++;
+
+      std::printf("force offset init: %zu / %zu\n",
+        robot.force_offset_samples,
+        robot_system::force_offset_sample_count);
+      return;
+    }
+
+    if (!robot.force_offset_init_done)
+    {
+      const double sample_count = static_cast<double>(robot_system::force_offset_sample_count);
+      Fx_offset(0) += robot.force_offset_sum[0] / sample_count;
+      Fy_offset(0) += robot.force_offset_sum[1] / sample_count;
+      Fz_offset(0) += robot.force_offset_sum[2] / sample_count;
+      Mx_offset(0) += robot.force_offset_sum[3] / sample_count;
+      My_offset(0) += robot.force_offset_sum[4] / sample_count;
+      Mz_offset(0) += robot.force_offset_sum[5] / sample_count;
+      robot.force_offset_init_done = true;
+
+      std::printf(
+        "force offset initialized: Fx=%lf Fy=%lf Fz=%lf Mx=%lf My=%lf Mz=%lf\n",
+        Fx_offset(0), Fy_offset(0), Fz_offset(0),
+        Mx_offset(0), My_offset(0), Mz_offset(0));
+
+      robot.control_mode_request = mc::idle;
     }
   };
 
@@ -329,4 +395,3 @@ void mc::control::register_controller()
   };
 
 }
-

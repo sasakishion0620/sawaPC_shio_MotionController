@@ -3,6 +3,7 @@ namespace mc {
   {
     idle,
     DA_check,
+    ForceOffsetInit,
     remote,
     Record,
     Bilateral,
