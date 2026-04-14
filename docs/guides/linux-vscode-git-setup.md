@@ -1,7 +1,10 @@
-# Linux + VS Code でこのリポジトリを取得する手順
+# GitHub 送信 / Linux 取得 手順メモ
 
-このメモは、Linux PC 側に空のフォルダがすでにある前提で、
-このプロジェクトを GitHub からダウンロードするための手順をまとめたものです。
+このメモは、以下をまとめたものです。
+
+- Windows 側で変更を GitHub に送る方法
+- Linux 側でこのプロジェクトをコピーする方法
+- VS Code で作業するときの流れ
 
 対象リポジトリ:
 
@@ -9,105 +12,153 @@
 https://github.com/sasakishion0620/sawaPC_shio_MotionController.git
 ```
 
-## 1. 空のフォルダを VS Code で開く
+## 1. Windows 側: 変更を GitHub に送る
 
-1. VS Code を開く
-2. `File` -> `Open Folder...`
-3. 用意してある空フォルダを選ぶ
+プロジェクトフォルダでターミナルを開いて、次を実行します。
 
-例:
-
-```text
-/home/<user>/work/sawaPC_shio_MotionController
+```powershell
+git status
+git add .
+git commit -m "update local changes"
+git push
 ```
 
-## 2. VS Code でターミナルを開く
+### 各コマンドの意味
 
-次のどれかでターミナルを開く。
+`git status`
+- 今の Git の状態を確認する
+- 変更ファイルがあるかどうかを見る
 
-- `Terminal` -> `New Terminal`
-- `Ctrl + Shift + @`
-- `Ctrl + Shift + P` -> `Terminal: Create New Terminal`
+`git add .`
+- 今の変更をコミット対象に入れる
+- 新しく作ったファイルも含めて登録する
 
-## 3. 空フォルダの中に clone する
+`git commit -m "update local changes"`
+- `add` した内容を 1 つの履歴として保存する
+- `"update local changes"` は変更内容のメモ
 
-VS Code のターミナルで次を実行する。
+`git push`
+- ローカルの履歴を GitHub に送る
+
+### 補足
+
+`git commit` のときに `nothing to commit` と出た場合は、
+新しく保存する変更がないという意味です。
+
+## 2. Linux 側: 空のフォルダにコピーする
+
+前提:
+
+- Linux に Git が入っている
+- 空のフォルダがすでにある
+- その空フォルダの中に、このリポジトリを入れたい
+
+空フォルダでターミナルを開いて、次を実行します。
 
 ```bash
 git clone https://github.com/sasakishion0620/sawaPC_shio_MotionController.git .
-```
-
-最後の `.` は、「今開いている空フォルダの中に展開する」という意味です。
-
-## 4. ちゃんと取れているか確認する
-
-```bash
 git status
 git remote -v
+```
+
+### 各コマンドの意味
+
+`git clone https://github.com/sasakishion0620/sawaPC_shio_MotionController.git .`
+- GitHub からプロジェクトをダウンロードする
+- 最後の `.` は「今いるフォルダに入れる」という意味
+
+`git status`
+- 正しく取得できたか確認する
+- どのブランチにいるか確認する
+
+`git remote -v`
+- このフォルダがどの GitHub リポジトリにつながっているか確認する
+
+## 3. Linux 側: 取得後の確認
+
+次のようになっていれば OK です。
+
+- `git status` で `On branch main` のように出る
+- `git remote -v` で `origin` が GitHub の URL になっている
+- `src`, `inc`, `config`, `docs` などが見える
+
+ファイル一覧を見たいときは:
+
+```bash
 ls
 ```
 
-期待する状態:
+## 4. Linux 側: すでにコピー済みのとき
 
-- `git status` で `On branch main` と出る
-- `git remote -v` で `origin` が GitHub の URL になっている
-- `ls` で `src`, `inc`, `config` などが見える
-
-## 5. あとで最新を取りたいとき
-
-すでに clone 済みのフォルダでは、以後はこれでよい。
+すでに Linux 側にこのフォルダがあるなら、最新を取るだけでよいです。
 
 ```bash
 git pull
 ```
 
-## 6. VS Code の UI でやる場合
+これは GitHub にある最新の内容を取ってくるコマンドです。
 
-### 初回
+## 5. VS Code でやる場合
 
-空フォルダがあるなら、初回だけはターミナルで次を実行するのが一番わかりやすい。
+### 空フォルダがすでにある場合
+
+1. VS Code でその空フォルダを開く
+2. ターミナルを開く
+3. 次を実行する
 
 ```bash
 git clone https://github.com/sasakishion0620/sawaPC_shio_MotionController.git .
 ```
 
-### 2回目以降
+ターミナルの開き方:
 
-VS Code の Source Control 画面から更新できる。
+- `Terminal` -> `New Terminal`
+- `Ctrl + Shift + @`
+- `Ctrl + Shift + P` -> `Terminal: Create New Terminal`
 
-1. 左の Source Control アイコンを開く
-2. `...` メニューを押す
-3. `Pull` を選ぶ
+### 空フォルダをまだ作っていない場合
 
-またはコマンドパレットで:
+VS Code の UI からできます。
+
+1. `Ctrl + Shift + P`
+2. `Git: Clone` を選ぶ
+3. 次の URL を貼る
 
 ```text
-Git: Pull
+https://github.com/sasakishion0620/sawaPC_shio_MotionController.git
 ```
 
-## 7. よくある失敗
+4. 保存先の親フォルダを選ぶ
+5. 開く
 
-### フォルダが空でない
+## 6. よく使う確認コマンド
 
-次のコマンドで中身を確認する。
-
-```bash
-ls -a
-```
-
-`.` と `..` 以外のファイルやフォルダがあれば、`git clone ... .` は失敗することがあります。
-
-### Git が入っていない
+Git が入っているか確認:
 
 ```bash
 git --version
 ```
 
-これでバージョンが出なければ、先に Git をインストールする必要があります。
+空フォルダか確認:
 
-## 8. 最短版
+```bash
+ls -a
+```
 
-空フォルダを VS Code で開いたあと、ターミナルでこれだけ実行すればよい。
+`.` と `..` 以外にファイルがあると、
+`git clone ... .` は失敗することがあります。
+
+## 7. 最短版
+
+### Windows 側
+
+```powershell
+git add .
+git commit -m "update local changes"
+git push
+```
+
+### Linux 側
 
 ```bash
 git clone https://github.com/sasakishion0620/sawaPC_shio_MotionController.git .
