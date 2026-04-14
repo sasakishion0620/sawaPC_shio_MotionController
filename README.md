@@ -53,6 +53,8 @@ make
 | オプション     | デフォルト | 説明                                                                                                  |
 | -------------- | ---------- | ----------------------------------------------------------------------------------------------------- |
 | `USE_PCI_MODE` | `ON`       | Contec PCI ボードを使用する。`OFF` にするとハードウェア初期化をスキップし、`-lpci` リンクも不要になる |
+| `ENABLE_FORCE_SENSOR_COM_CHECK` | `ON` | `USE_PCI_MODE=ON` かつ Linux のとき、ビルド中に `force_sensor_check` を実行して Leprino 力センサの COM 接続確認を行う |
+| `FORCE_SENSOR_DEVICE` | `/dev/ttyACM1` | Leprino 力センサのシリアルデバイス。例: `cmake -DFORCE_SENSOR_DEVICE=/dev/ttyACM0 ..` |
 
 ## 実行
 

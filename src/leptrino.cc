@@ -1,5 +1,9 @@
 #include "leptrino.h"
 
+#ifndef LEPTRINO_DEVICE_PATH
+#define LEPTRINO_DEVICE_PATH "/dev/ttyACM1"
+#endif
+
 // ----------------------------------------------------------------------------------
 //	�A�v���P�[�V����������
 // ----------------------------------------------------------------------------------
@@ -9,13 +13,17 @@
 void leptrino::App_Init(void)
 {
 	int rt;
+	const char *device_path = LEPTRINO_DEVICE_PATH;
 	
 	//Comm�|�[�g������
 	com_ok = NG;
-	rt = Comm_Open("/dev/ttyACM1");
+	rt = Comm_Open(device_path);
 	if ( rt==OK ) {
 		Comm_Setup( 460800, PAR_NON, BIT_LEN_8, 0, 0, CHR_ETX);
 		com_ok = OK;
+	}
+	else {
+		printf("ComPort Open Fail: %s\n", device_path);
 	}
 
 }
@@ -183,7 +191,7 @@ bool leptrino::init ()
 //	����	: dev .. �V���A���|�[�g
 //	�߂�l	: ���펞:0   �G���[��:-1
 // ----------------------------------------------------------------------------------
-int leptrino::Comm_Open(char *dev)
+int leptrino::Comm_Open(const char *dev)
 {
 	//���ɃI�[�v�����Ă���Ƃ��͈�x����
 	if (fd != 0) Comm_Close();

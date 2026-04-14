@@ -59,7 +59,7 @@ public:
 	void GetProductInfo(void);
 	void SerialStart(void);
 	void SerialStop(void);
-	int Comm_Open(char *dev);
+	int Comm_Open(const char *dev);
 	void Comm_Setup(long baud ,int parity ,int bitlen ,int rts ,int dtr ,char code);
 	int Comm_SendData( UCHAR *buff, int l);
 	int Comm_GetRcvData(UCHAR *buff);

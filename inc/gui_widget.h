@@ -58,12 +58,25 @@ namespace mc {
         const char *force_sensor_status = "DISABLED";
         if (robot_system_ptr->force_sensor_enabled)
           force_sensor_status = robot_system_ptr->force_sensor_connected ? "CONNECTED" : "NOT CONNECTED";
+        const double fz = robot_system_ptr->joints.at(0).data[mc::response][mc::Fz];
         ImGui::Text("Force Sensor Status: %s", force_sensor_status);
+        ImGui::Separator();
+        ImGui::Text("Instant Fz");
+        ImGui::PushStyleColor(
+          ImGuiCol_Text,
+          (robot_system_ptr->force_sensor_enabled && robot_system_ptr->force_sensor_connected)
+            ? ImVec4(0.85f, 0.95f, 0.40f, 1.0f)
+            : ImVec4(0.65f, 0.65f, 0.65f, 1.0f)
+        );
+        ImGui::SetWindowFontScale(1.6f);
+        ImGui::Text("%+.3f", fz);
+        ImGui::SetWindowFontScale(1.0f);
+        ImGui::PopStyleColor();
         ImGui::Text(
           "Force Sensor: Fx=%+.3f Fy=%+.3f Fz=%+.3f",
           robot_system_ptr->joints.at(0).data[mc::response][mc::Fx],
           robot_system_ptr->joints.at(0).data[mc::response][mc::Fy],
-          robot_system_ptr->joints.at(0).data[mc::response][mc::Fz]
+          fz
         );
         ImGui::Text(
           "Torque Sensor: Mx=%+.3f My=%+.3f Mz=%+.3f",
@@ -131,15 +144,33 @@ namespace mc {
 
       gui_time += ImGui::GetIO().DeltaTime;
       float t = gui_time;
+      const bool force_sensor_connected = robot_system_ptr->force_sensor_enabled && robot_system_ptr->force_sensor_connected;
+      const double fz_now = robot_system_ptr->joints.empty()
+        ? 0.0
+        : robot_system_ptr->joints.at(0).data[mc::response][mc::Fz];
       sdata_vec[0].add_point(t, static_cast<float>(x_res(0)));
       sdata_vec[1].add_point(t, static_cast<float>(f_dis(0)));
       sdata_vec[2].add_point(t, static_cast<float>(robot_system_ptr->get_from_dict("theta_cmd")));
       sdata_vec[3].add_point(t, static_cast<float>(Fz(0)));
-      const bool force_sensor_connected = robot_system_ptr->force_sensor_enabled && robot_system_ptr->force_sensor_connected;
+
+      ImGui::Text("Force Sensor");
+      ImGui::SameLine();
+      ImGui::TextColored(
+        force_sensor_connected ? ImVec4(0.45f, 0.95f, 0.45f, 1.0f) : ImVec4(0.95f, 0.45f, 0.45f, 1.0f),
+        force_sensor_connected ? "CONNECTED" : "NOT CONNECTED"
+      );
+      ImGui::SetWindowFontScale(2.4f);
+      ImGui::TextColored(
+        force_sensor_connected ? ImVec4(0.90f, 0.95f, 0.35f, 1.0f) : ImVec4(0.65f, 0.65f, 0.65f, 1.0f),
+        "Fz %+.3f",
+        fz_now
+      );
+      ImGui::SetWindowFontScale(1.0f);
+      ImGui::Separator();
 
       ImPlot::SetNextPlotLimitsX(t - history, t + history, ImGuiCond_Always);
       ImPlot::SetNextPlotLimitsY(-1, 1);
-      if (sdata_vec[0].data.size() > 0 && ImPlot::BeginPlot("position / command", "time[sec]", "x[rad]", ImVec2(-1, 300)))
+      if (sdata_vec[0].data.size() > 0 && ImPlot::BeginPlot("position / command", "time[sec]", "x[rad]", ImVec2(-1, 240)))
       {
         ImPlot::PlotLine("theta_res", &sdata_vec[0].data[0].x, &sdata_vec[0].data[0].y, sdata_vec[0].data.size(), sdata_vec[0].offset, 2*sizeof(float));
         if (sdata_vec[2].data.size() > 0)
@@ -149,7 +180,7 @@ namespace mc {
 
       ImPlot::SetNextPlotLimitsX(t - history, t + history, ImGuiCond_Always);
       ImPlot::SetNextPlotLimitsY(-1, 1);
-      if (sdata_vec[1].data.size() > 0 && ImPlot::BeginPlot("force", "time[sec]", "f[Nm]", ImVec2(-1, 200)))
+      if (sdata_vec[1].data.size() > 0 && ImPlot::BeginPlot("force", "time[sec]", "f[Nm]", ImVec2(-1, 180)))
       {
         ImPlot::PlotLine("f_dis", &sdata_vec[1].data[0].x, &sdata_vec[1].data[0].y, sdata_vec[1].data.size(), sdata_vec[1].offset, 2*sizeof(float));
         if (force_sensor_connected && sdata_vec[3].data.size() > 0)
