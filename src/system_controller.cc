@@ -16,6 +16,24 @@
 #define K_n(n) robot_.joints[(n)].parameter[mc::spring]
 #define g_diff(n) robot_.joints[(n)].parameter[mc::g_diff]
 #define g_dis(n) robot_.joints[(n)].parameter[mc::g_dis]
+#define   Fx(n) robot_.joints[(n)].data[mc::response][mc::Fx]
+#define   Fy(n) robot_.joints[(n)].data[mc::response][mc::Fy]
+#define   Fz(n) robot_.joints[(n)].data[mc::response][mc::Fz]
+#define   Mx(n) robot_.joints[(n)].data[mc::response][mc::Mx]
+#define   My(n) robot_.joints[(n)].data[mc::response][mc::My]
+#define   Mz(n) robot_.joints[(n)].data[mc::response][mc::Mz]
+#define   Fx_buf(n) robot_.joints[(n)].data_buf[mc::response][mc::Fx]
+#define   Fy_buf(n) robot_.joints[(n)].data_buf[mc::response][mc::Fy]
+#define   Fz_buf(n) robot_.joints[(n)].data_buf[mc::response][mc::Fz]
+#define   Mx_buf(n) robot_.joints[(n)].data_buf[mc::response][mc::Mx]
+#define   My_buf(n) robot_.joints[(n)].data_buf[mc::response][mc::My]
+#define   Mz_buf(n) robot_.joints[(n)].data_buf[mc::response][mc::Mz]
+#define   Fx_offset(n) robot_.joints[(n)].data[mc::offset][mc::Fx]
+#define   Fy_offset(n) robot_.joints[(n)].data[mc::offset][mc::Fy]
+#define   Fz_offset(n) robot_.joints[(n)].data[mc::offset][mc::Fz]
+#define   Mx_offset(n) robot_.joints[(n)].data[mc::offset][mc::Mx]
+#define   My_offset(n) robot_.joints[(n)].data[mc::offset][mc::My]
+#define   Mz_offset(n) robot_.joints[(n)].data[mc::offset][mc::Mz]
 
 using ll = long long int;
 using namespace mc;
@@ -49,6 +67,7 @@ void system_controller::task_registration()
 
   tasks_[::read_sensor] = [this](ll sample_frequency)
   {
+    (void)(sample_frequency);
     // read signal from sensors
     static long long int cnt;
     double dt = robot_.get_from_dict("dt");
@@ -121,6 +140,42 @@ void system_controller::task_registration()
   {
     (void)(sample_frequency);
     udp_receiver_.receive();
+    return system_controller::ON;
+  };
+
+  tasks_[::leptrino_read] = [this](ll sample_frequency)
+  {
+    (void)(sample_frequency);
+    if (leptrino_ptr_ == nullptr || robot_.joints.empty())
+      return system_controller::ON;
+
+    constexpr double dt = 0.0001;
+    constexpr double cutoff = 2.0 * 3.14159265358979323846 * 200.0;
+
+    leptrino_ptr_->Comm_Rcv();
+    if (leptrino_ptr_->Comm_CheckRcv() == 0)
+      return system_controller::ON;
+
+    memset(leptrino_ptr_->CommRcvBuff, 0, sizeof(leptrino_ptr_->CommRcvBuff));
+    leptrino_ptr_->rt = leptrino_ptr_->Comm_GetRcvData(leptrino_ptr_->CommRcvBuff);
+    if (leptrino_ptr_->rt <= 0)
+      return system_controller::ON;
+
+    leptrino_ptr_->stForce = (ST_R_DATA_GET_F *)leptrino_ptr_->CommRcvBuff;
+
+    const double fx_in = (double)leptrino_ptr_->stForce->ssForce[0] / 2000.0 * 1000.0 - Fx_offset(0);
+    const double fy_in = (double)leptrino_ptr_->stForce->ssForce[1] / 2000.0 * 1000.0 - Fy_offset(0);
+    const double fz_in = (double)leptrino_ptr_->stForce->ssForce[2] / 20000.0 * 1000.0 - Fz_offset(0);
+    const double mx_in = (double)leptrino_ptr_->stForce->ssForce[3] / 2000.0 * 40.0 - Mx_offset(0);
+    const double my_in = (double)leptrino_ptr_->stForce->ssForce[4] / 2000.0 * 40.0 - My_offset(0);
+    const double mz_in = (double)leptrino_ptr_->stForce->ssForce[5] / 2000.0 * 40.0 - Mz_offset(0);
+
+    mc::signal<double>::low_pass_filter(dt, cutoff, Fx(0), fx_in, Fx_buf(0));
+    mc::signal<double>::low_pass_filter(dt, cutoff, Fy(0), fy_in, Fy_buf(0));
+    mc::signal<double>::low_pass_filter(dt, cutoff, Fz(0), fz_in, Fz_buf(0));
+    mc::signal<double>::low_pass_filter(dt, cutoff, Mx(0), mx_in, Mx_buf(0));
+    mc::signal<double>::low_pass_filter(dt, cutoff, My(0), my_in, My_buf(0));
+    mc::signal<double>::low_pass_filter(dt, cutoff, Mz(0), mz_in, Mz_buf(0));
     return system_controller::ON;
   };
 

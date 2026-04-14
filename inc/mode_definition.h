@@ -6,6 +6,7 @@ namespace mc {
     remote,
     Record,
     Bilateral,
+    Angle_EMS,
     control_mode_size
   };
 } // namespace mc

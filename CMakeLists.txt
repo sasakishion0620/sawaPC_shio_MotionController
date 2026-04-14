@@ -24,6 +24,7 @@ add_executable(${TARGET_NAME}
   ./src/thread_controller.cc
   ./src/system_controller.cc
   ./src/gui.cc
+  ./src/leptrino.cc
   ./src/controller.cc
 )
 

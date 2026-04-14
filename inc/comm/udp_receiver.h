@@ -17,7 +17,7 @@ namespace mc {
 class udp_receiver
 {
 public:
-  udp_receiver() : socket_fd_(-1), packet_count_(0), last_receive_time_(0), valid_(false), latest_data_{} {}
+  udp_receiver() : socket_fd_(-1), latest_data_{}, packet_count_(0), last_receive_time_(0), valid_(false) {}
 
   int open(int port)
   {

@@ -4,14 +4,31 @@ GLFWwindow *reset_and_open_window(const std::string window_name)
 {
   const char* glsl_version = "#version 130";
   if (!glfwInit())
+  {
+      const char *description = nullptr;
+      glfwGetError(&description);
+      std::cerr << "[gui] glfwInit failed";
+      if (description != nullptr)
+        std::cerr << ": " << description;
+      std::cerr << std::endl;
       exit(1);
+  }
 
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 
-  const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
-  GLFWwindow *window = glfwCreateWindow(mode->width, mode->height, window_name.c_str(), NULL, NULL);
+  const GLFWmonitor* primary_monitor = glfwGetPrimaryMonitor();
+  const GLFWvidmode* mode = (primary_monitor != nullptr) ? glfwGetVideoMode(primary_monitor) : nullptr;
+  const int window_width = (mode != nullptr) ? mode->width : 1280;
+  const int window_height = (mode != nullptr) ? mode->height : 720;
+  GLFWwindow *window = glfwCreateWindow(window_width, window_height, window_name.c_str(), NULL, NULL);
   if(window == nullptr){
+    const char *description = nullptr;
+    glfwGetError(&description);
+    std::cerr << "[gui] glfwCreateWindow failed";
+    if (description != nullptr)
+      std::cerr << ": " << description;
+    std::cerr << std::endl;
     exit(1);
   }
 
@@ -40,7 +57,10 @@ GLFWwindow *reset_and_open_window(const std::string window_name)
   ImGui_ImplOpenGL3_Init(glsl_version);
 
   ImGuiIO& io = ImGui::GetIO();
-  io.Fonts->AddFontFromFileTTF("../config/fonts/Roboto-Medium.ttf", 16.0f, NULL);
+  if (io.Fonts->AddFontFromFileTTF("../config/fonts/Roboto-Medium.ttf", 16.0f, NULL) == nullptr)
+  {
+    std::cerr << "[gui] failed to load font: ../config/fonts/Roboto-Medium.ttf" << std::endl;
+  }
   return window;
 }
 

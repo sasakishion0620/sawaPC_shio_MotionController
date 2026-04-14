@@ -53,6 +53,26 @@ namespace mc {
       ImGui::Separator();
       ImGui::Columns(1);
 
+      if (!robot_system_ptr->joints.empty())
+      {
+        const char *force_sensor_status = "DISABLED";
+        if (robot_system_ptr->force_sensor_enabled)
+          force_sensor_status = robot_system_ptr->force_sensor_connected ? "CONNECTED" : "NOT CONNECTED";
+        ImGui::Text("Force Sensor Status: %s", force_sensor_status);
+        ImGui::Text(
+          "Force Sensor: Fx=%+.3f Fy=%+.3f Fz=%+.3f",
+          robot_system_ptr->joints.at(0).data[mc::response][mc::Fx],
+          robot_system_ptr->joints.at(0).data[mc::response][mc::Fy],
+          robot_system_ptr->joints.at(0).data[mc::response][mc::Fz]
+        );
+        ImGui::Text(
+          "Torque Sensor: Mx=%+.3f My=%+.3f Mz=%+.3f",
+          robot_system_ptr->joints.at(0).data[mc::response][mc::Mx],
+          robot_system_ptr->joints.at(0).data[mc::response][mc::My],
+          robot_system_ptr->joints.at(0).data[mc::response][mc::Mz]
+        );
+      }
+
       ImGui::Columns(5, "motion_header_column");
       ImGui::Text(" ");
       ImGui::NextColumn();
@@ -103,9 +123,10 @@ namespace mc {
 
 #define x_res(n) robot_system_ptr->joints[(n)].data[mc::response][mc::x]
 #define f_dis(n) robot_system_ptr->joints[(n)].data[mc::response][mc::f_dis]
+#define Fz(n) robot_system_ptr->joints[(n)].data[mc::response][mc::Fz]
     static void plot_state(robot_system *robot_system_ptr)
     {
-      static std::vector<scrolling_buffer> sdata_vec(3);
+      static std::vector<scrolling_buffer> sdata_vec(4);
       static float history = 2.0f;
 
       gui_time += ImGui::GetIO().DeltaTime;
@@ -113,6 +134,8 @@ namespace mc {
       sdata_vec[0].add_point(t, static_cast<float>(x_res(0)));
       sdata_vec[1].add_point(t, static_cast<float>(f_dis(0)));
       sdata_vec[2].add_point(t, static_cast<float>(robot_system_ptr->get_from_dict("theta_cmd")));
+      sdata_vec[3].add_point(t, static_cast<float>(Fz(0)));
+      const bool force_sensor_connected = robot_system_ptr->force_sensor_enabled && robot_system_ptr->force_sensor_connected;
 
       ImPlot::SetNextPlotLimitsX(t - history, t + history, ImGuiCond_Always);
       ImPlot::SetNextPlotLimitsY(-1, 1);
@@ -129,11 +152,14 @@ namespace mc {
       if (sdata_vec[1].data.size() > 0 && ImPlot::BeginPlot("force", "time[sec]", "f[Nm]", ImVec2(-1, 200)))
       {
         ImPlot::PlotLine("f_dis", &sdata_vec[1].data[0].x, &sdata_vec[1].data[0].y, sdata_vec[1].data.size(), sdata_vec[1].offset, 2*sizeof(float));
+        if (force_sensor_connected && sdata_vec[3].data.size() > 0)
+          ImPlot::PlotLine("Fz", &sdata_vec[3].data[0].x, &sdata_vec[3].data[0].y, sdata_vec[3].data.size(), sdata_vec[3].offset, 2*sizeof(float));
         ImPlot::EndPlot();
       }
     }
 #undef x_res
 #undef f_dis
+#undef Fz
 
     static void finger_tracker_status(robot_system *robot_system_ptr)
     {

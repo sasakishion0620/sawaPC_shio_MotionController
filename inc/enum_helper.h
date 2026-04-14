@@ -2,6 +2,7 @@
 #define MOTIONCONTROL_ENUM_HELPER_H
 #include <iostream>
 #include <string>
+#include <type_traits>
 #include <boost/preprocessor.hpp>
 #include <boost/preprocessor/repetition/repeat.hpp>
 
@@ -37,14 +38,18 @@ namespace mc {
     static std::string name(E e)
     {
         std::string ret;
-        switch (e) {
+        using underlying_type = typename std::underlying_type<E>::type;
+        switch (static_cast<underlying_type>(e)) {
         BOOST_PP_REPEAT(30, CASE, _);
         default:
             ret = "";
             break;
         }
-        //std::string str = ret;
-        auto pos = ret.find_last_of("::");
+        // Invalid enum values stringify like "(mc::type)7" on GCC/Clang.
+        if (!ret.empty() && ret.front() == '(')
+          return "";
+
+        auto pos = ret.rfind("::");
         if (pos != std::string::npos)
           ret = ret.substr(pos + 1);
         return ret;

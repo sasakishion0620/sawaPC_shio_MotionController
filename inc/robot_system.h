@@ -15,6 +15,8 @@ public:
   std::vector<long long int> timer_sampling_times;// duration between each timer's sampling call
   mc::control_mode control_mode_request;
   bool is_recording = false;
+  bool force_sensor_enabled = false;
+  bool force_sensor_connected = false;
 
   // method
   robot_system()

@@ -1,6 +1,7 @@
 #include <iostream>
 #include "control_timer.h"
 #include "thread_controller.h"
+#include "leptrino.h"
 #ifdef PCI_MODE
 # include "contec_counter.h"
 # include "contec_da.h"
@@ -19,8 +20,21 @@ int main()
 #ifdef PCI_MODE
   contec_counter<double> counter1(0, 1, motion_control_system.get_robot(), "../config/contec_counter1.json");
   contec_da<double> da(0, 1, motion_control_system.get_robot(), "../config/contec_da1.json", 2);
+  leptrino force_sensor;
   motion_control_system.add_reader(&counter1);
   motion_control_system.add_writer(&da);
+  try
+  {
+    motion_control_system.init_leptrino(&force_sensor);
+  }
+  catch (const std::exception &e)
+  {
+    std::cerr << "[startup] failed to initialize force sensor: " << e.what() << std::endl;
+    return 1;
+  }
+#else
+  motion_control_system.get_robot()->force_sensor_enabled = false;
+  motion_control_system.get_robot()->force_sensor_connected = false;
 #endif
 
   // setting thread controller

@@ -1,6 +1,6 @@
 {
-  "force_threshold": 0.5,
-  "force_max": 20.0,
-  "voltage_threshold": 0.5,
-  "voltage_max": 3.3
+  "force_threshold": 0.2,
+  "force_max": 8.0,
+  "voltage_threshold": 1.4,
+  "voltage_max": 1.9
 }

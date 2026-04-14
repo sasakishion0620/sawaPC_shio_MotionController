@@ -5,10 +5,12 @@
 #include <functional>
 #include <sys/stat.h>
 #include <cerrno>
+#include <stdexcept>
 #include "robot_system.h"
 #include "gui.h"
 #include "reader.h"
 #include "writer.h"
+#include "leptrino.h"
 #include "signal_processing.h"
 #include "control_timer.h"
 #include "environment.h"
@@ -51,6 +53,7 @@ public:
   virtual void calculate_output_command()
   {
     control_.controller[robot_.get_control_mode()](robot_);
+    //controllerは関数を複数もつ配列で，その関数はrobot_system型を引数にとる
     limit_force_output();
     convert_force_to_voltage();
     robot_.increase_control_step();
@@ -91,6 +94,17 @@ public:
     writers_ptr_.push_back(writer_ptr);
   }
 
+  virtual void init_leptrino(leptrino *force_sensor_ptr)
+  {
+    leptrino_ptr_ = force_sensor_ptr;
+    robot_.force_sensor_enabled = true;
+    robot_.force_sensor_connected = false;
+    if (!leptrino_ptr_->init())
+      throw std::runtime_error("force sensor initialization failed");
+    robot_.force_sensor_connected = true;
+    std::printf("\nleptrino set\n");
+  }
+
   virtual robot_system *get_robot()
   {
     return &robot_;
@@ -102,6 +116,8 @@ public:
       readers_ptr_[i]->close();
     for (size_t i = 0; i < writers_ptr_.size(); ++i)
       writers_ptr_[i]->close();
+    if (leptrino_ptr_ != nullptr)
+      leptrino_ptr_->App_Close();
     udp_receiver_.close();
   }
 private:
@@ -111,6 +127,7 @@ private:
   mc::udp_receiver udp_receiver_;
   std::vector<reader<double>*> readers_ptr_;
   std::vector<writer<double>*> writers_ptr_;
+  leptrino *leptrino_ptr_ = nullptr;
 
 #define f_out(n) robot_.joints[(n)].data[mc::output][mc::f]
 #define voltage(n) robot_.joints[(n)].data[mc::output][mc::voltage]
@@ -244,6 +261,7 @@ private:
       robot_.set_to_dict("ems_voltage_threshold", pt.get<double>("voltage_threshold", 0.5));
       robot_.set_to_dict("ems_voltage_max",       pt.get<double>("voltage_max",       3.3));
     }
+
     catch (...)
     {
       std::cerr << "[system_controller] ems.json not found, using defaults" << std::endl;

@@ -10,6 +10,7 @@ namespace thread {
     write_output,
     record_motion,
     recv_command,
+    leptrino_read,
     draw_gui,
     thread_list_size
   };

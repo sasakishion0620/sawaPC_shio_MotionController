@@ -7,6 +7,7 @@ namespace mc {
     compensation,
     output,
     lowpass,
+    offset,
     type_size
   };
 
@@ -21,6 +22,12 @@ namespace mc {
     f_vol,
     f_react,
     voltage,
+    Fx,
+    Fy,
+    Fz,
+    Mx,
+    My,
+    Mz,
     state_size
   };
 
