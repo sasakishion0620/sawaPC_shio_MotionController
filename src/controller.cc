@@ -359,12 +359,12 @@ void mc::control::register_controller()
     // --- EMS voltage calculation from theta_cmd (角度に基づく電圧計箁E ---
     {
       
-      // 冁E�E�E�E�E�E�E�E��E�E�E�E�E�E�E�玁E�E�E�E�E�E�E�E�E定義 (M_PIが使えなぁE�E�E�E�E�E�E�E��E�E�E�E�E�E�E�墁E�E�E�E�E�E�E�E��E�E�E�E�E�E�E�のバックアチE�E�E�E�E�E�E�E�E)
+      // 冁E�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E��E�E�E�E�E�E�E�E�E�E�E�E�E�E�E�玁E�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E定義 (M_PIが使えなぁE�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E��E�E�E�E�E�E�E�E�E�E�E�E�E�E�E�墁E�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E��E�E�E�E�E�E�E�E�E�E�E�E�E�E�E�のバックアチE�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E)
       #ifndef M_PI
       const double M_PI = 3.14159265358979323846;
       #endif
 
-      // 角度の定義�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E�度数法からラジアンへ変換�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E      const double deg2rad = M_PI / 180.0;
+      // 角度の定義�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E�度数法からラジアンへ変換�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E�E      const double deg2rad = M_PI / 180.0;
       double theta_min = 10.0 * deg2rad; // 10度
       double theta_max = 90.0 * deg2rad; // 90度
       
@@ -509,13 +509,12 @@ void mc::control::register_controller()
   
   time_count++;
 
-
-  if (time_count >= 10)
+  
+  if (time_count % 10 == 0)
   {
-    time_count = 0;
     if (fp != nullptr)
     {
-      const double time = static_cast<double>(control_timer::get_micro_time()) / 1000000.0;
+      const double time = static_cast<double>(time_count) / 10000.0;
       fprintf(fp, "%lf,%lf,%lf,%lf\n", time, V_in, f_cmd, f_m);
       fflush(fp);
     }
