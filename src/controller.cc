@@ -2,6 +2,12 @@
 #include "control_timer.h"
 #include "thread_definition.h"
 #include <cstdlib>
+#include <cstdio>
+#include <string>
+#include <sys/stat.h>
+#include <cerrno>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
 
 #define x_res(n) robot.joints[(n)].data[mc::response][mc::x]
 #define dx_res(n) robot.joints[(n)].data[mc::response][mc::dx]
@@ -353,12 +359,12 @@ void mc::control::register_controller()
     // --- EMS voltage calculation from theta_cmd (è§’åº¦ã«åŸºã¥ãé›»åœ§è¨ˆç®E ---
     {
       
-      // å†EE½EE½EE½EE½E½EE½EE½EE½çEE½EE½EE½EE½Eå®šç¾© (M_PIãŒä½¿ãˆãªãEE½EE½EE½EE½E½EE½EE½EE½å¢EE½EE½EE½EE½E½EE½EE½EE½ã®ãƒãƒƒã‚¯ã‚¢ãƒEE½EE½EE½EE½E)
+      // å†Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½çEï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eå®šç¾© (M_PIãŒä½¿ãˆãªãEï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½å¢Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½ã®ãƒãƒƒã‚¯ã‚¢ãƒEï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½E)
       #ifndef M_PI
       const double M_PI = 3.14159265358979323846;
       #endif
 
-      // è§’åº¦ã®å®šç¾©E½EE½EE½EE½EE½EE½EE½EE½åº¦æ•°æ³•ã‹ã‚‰ãƒ©ã‚¸ã‚¢ãƒ³ã¸å¤‰æ›E½EE½EE½EE½EE½EE½EE½EE½E      const double deg2rad = M_PI / 180.0;
+      // è§’åº¦ã®å®šç¾©ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½åº¦æ•°æ³•ã‹ã‚‰ãƒ©ã‚¸ã‚¢ãƒ³ã¸å¤‰æ›ï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½Eï¿½E      const double deg2rad = M_PI / 180.0;
       double theta_min = 10.0 * deg2rad; // 10åº¦
       double theta_max = 90.0 * deg2rad; // 90åº¦
       
@@ -399,6 +405,8 @@ void mc::control::register_controller()
   static double integral = 0.0;
   static double V_in = 0.0;
   static int count = 0;
+  static FILE *fp = nullptr;
+  static int time_count = 0;
 
   constexpr int pi_update_interval_count = 50;
   constexpr double pi_update_dt = 0.005;
@@ -423,7 +431,38 @@ void mc::control::register_controller()
     integral = 0.0;
     V_in = 0.0;
     count = 0;
+    time_count = 0;
   }
+
+  if (fp == nullptr)
+  {
+    const std::string data_dir = "../data";
+    mkdir(data_dir.c_str(), 0755);
+
+    boost::property_tree::ptree pt;
+    boost::property_tree::read_json("../config/force_pi_control.json", pt);
+    std::string record_file_name = pt.get<std::string>("record_file_name", "no_name.csv");
+
+    if (record_file_name.size() < 4 || record_file_name.substr(record_file_name.size() - 4) != ".csv")
+    {
+      record_file_name += ".csv";
+    }
+
+    const std::string file_path = data_dir + "/" + record_file_name;
+    fp = fopen(file_path.c_str(), "w");
+
+    if (fp == nullptr)
+    {
+      printf("Error: Could not create file %s\n", file_path.c_str());
+      exit(1);
+    }
+
+    fprintf(fp, "time,Vin,f_cmd,f_m\n");
+    printf("New log file created: %s\n", file_path.c_str());
+  }
+
+
+
 
   if (!robot.force_sensor_connected || robot.joints.empty())
   {
@@ -433,7 +472,7 @@ void mc::control::register_controller()
 
     robot.set_to_dict("da_ch1_voltage", 0.0);
     robot.set_to_dict("ems_voltage", 0.0);
-    std::exit(1);
+    exit(1);
   }
 
   const double f_m = Fz(0);
@@ -441,7 +480,6 @@ void mc::control::register_controller()
   robot.set_to_dict("force_pi_measured", f_m);
 
   count++;
-  
   if (count >= pi_update_interval_count)
   {
     count = 0;
@@ -460,19 +498,28 @@ void mc::control::register_controller()
     V_in = u_in;
     if (V_in < voltage_min) V_in = voltage_min;
     if (V_in > voltage_max) V_in = voltage_max;
-
-    // robot.set_to_dict("force_pi_error", e);
-    // robot.set_to_dict("force_pi_integral", integral);
-    // robot.set_to_dict("force_pi_ufb", ufb);
-    // robot.set_to_dict("force_pi_uff", uff);
-    // robot.set_to_dict("force_pi_u", u);
-    // robot.set_to_dict("force_pi_uin", u_in);
   }
 
   robot.set_to_dict("force_pi_count", static_cast<double>(count));
   robot.set_to_dict("force_pi_v_in", V_in);
   robot.set_to_dict("da_ch1_voltage", V_in);
   robot.set_to_dict("ems_voltage", V_in);
+
+
+  
+  time_count++;
+
+
+  if (time_count >= 10)
+  {
+    time_count = 0;
+    if (fp != nullptr)
+    {
+      const double time = static_cast<double>(control_timer::get_micro_time()) / 1000000.0;
+      fprintf(fp, "%lf,%lf,%lf,%lf\n", time, V_in, f_cmd, f_m);
+      fflush(fp);
+    }
+  }
 
 };
 

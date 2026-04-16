@@ -5,5 +5,8 @@
   "f_cmd": 10.0,
   "uth": 0.5,
   "voltage_min": 0.0,
-  "voltage_max": 3.3
+  "voltage_max": 3.3,
+  "record_file_name": "test1"
 }
+
+
