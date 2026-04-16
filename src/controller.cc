@@ -580,7 +580,7 @@ void mc::control::register_controller()
 
       const std::string data_dir = "../data";
       mkdir(data_dir.c_str(), 0755);
-      const std::string file_path = data_dir + "/model_test1.csv";
+      const std::string file_path = data_dir + "/model_test3.csv";
       fp = fopen(file_path.c_str(), "w");
       if (fp == nullptr)
       {
