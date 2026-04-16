@@ -547,11 +547,11 @@ void mc::control::register_controller()
     static long long time_count = 0;
     static double Vin = 0.0;
 
-    constexpr double voltage_step = 0.3;
+    constexpr double voltage_step = 0.2;
     constexpr double voltage_max = 3.3;
     constexpr long long step_count = 30000; // 10 kHz * 3 sec
     constexpr long long record_count = 10;  // 10 kHz / 10 = 1 kHz
-    constexpr long long final_step_index = 11; // 0.0, 0.3, ..., 3.3
+    constexpr long long final_step_index = 16; // 0.0, 0.3, ..., 3.3
 
     auto output_zero = [&robot]()
     {
