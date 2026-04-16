@@ -2,8 +2,7 @@
 build/
 cmake-build-*/
 
-# Data and logs (runtime)
-data/
+# Logs (runtime)
 logs/
 
 # IDE
