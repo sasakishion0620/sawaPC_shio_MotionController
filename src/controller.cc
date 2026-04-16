@@ -1,6 +1,7 @@
 #include "controller.h"
 #include "control_timer.h"
 #include "thread_definition.h"
+#include <cstdlib>
 
 #define x_res(n) robot.joints[(n)].data[mc::response][mc::x]
 #define dx_res(n) robot.joints[(n)].data[mc::response][mc::dx]
@@ -135,7 +136,7 @@ void mc::control::register_controller()
     if (distance_mm < 0.0) distance_mm = 0.0;
     if (distance_mm > max_dist) distance_mm = max_dist;
 
-    // invert: small finger distance (grasp) → large x_d → large theta_cmd (robot closes)
+    // invert: small finger distance (grasp) ↁElarge x_d ↁElarge theta_cmd (robot closes)
     double x_d = (max_dist - distance_mm) / 1000.0;
 
     // clamp to valid range for inverse kinematics (0 to 2r)
@@ -197,7 +198,7 @@ void mc::control::register_controller()
     if (distance_mm < 0.0) distance_mm = 0.0;
     if (distance_mm > max_dist) distance_mm = max_dist;
 
-    // invert: small finger distance (grasp) → large x_d → large theta_cmd (robot closes)
+    // invert: small finger distance (grasp) ↁElarge x_d ↁElarge theta_cmd (robot closes)
     double x_d = (max_dist - distance_mm) / 1000.0;
 
     // clamp to valid range for inverse kinematics (0 to 2r)
@@ -285,7 +286,7 @@ void mc::control::register_controller()
     if (distance_mm < 0.0) distance_mm = 0.0;
     if (distance_mm > max_dist) distance_mm = max_dist;
 
-    // invert: small finger distance (grasp) → large x_d → large theta_cmd (robot closes)
+    // invert: small finger distance (grasp) ↁElarge x_d ↁElarge theta_cmd (robot closes)
     double x_d = (max_dist - distance_mm) / 1000.0;
 
     // clamp to valid range for inverse kinematics (0 to 2r)
@@ -349,26 +350,25 @@ void mc::control::register_controller()
     }
 
 
-    // --- EMS voltage calculation from theta_cmd (角度に基づく電圧計算) ---
+    // --- EMS voltage calculation from theta_cmd (角度に基づく電圧計箁E ---
     {
       
-      // 円周率の定義 (M_PIが使えない環境用のバックアップ)
+      // 冁E�E�E�E��E�E�E�玁E�E�E�E�E定義 (M_PIが使えなぁE�E�E�E��E�E�E�墁E�E�E�E��E�E�E�のバックアチE�E�E�E�E)
       #ifndef M_PI
       const double M_PI = 3.14159265358979323846;
       #endif
 
-      // 角度の定義（度数法からラジアンへ変換）
-      const double deg2rad = M_PI / 180.0;
+      // 角度の定義�E�E�E�E�E�E�E�度数法からラジアンへ変換�E�E�E�E�E�E�E�E      const double deg2rad = M_PI / 180.0;
       double theta_min = 10.0 * deg2rad; // 10度
       double theta_max = 90.0 * deg2rad; // 90度
       
       double v_max = robot.get_from_dict("ems_voltage_threshold");
       double v_ems = robot.get_from_dict("ems_voltage_max");
 
-      // センサーの現在値を取得 (単位はラジアンと想定)
+      // センサーの現在値を取征E(単位�Eラジアンと想宁E
       double sensor_theta = x_res(0);
 
-      // 10度(min)〜90度(max)の間で 0V〜3.3V にスケーリング
+      // 10度(min)、E0度(max)の間で 0V、E.3V にスケーリング
       if (sensor_theta <= theta_min)
       {
         v_ems = 0.0;
@@ -379,19 +379,100 @@ void mc::control::register_controller()
       }
       else
       {
-        // 線形補間計算
-        v_ems = (sensor_theta- theta_min) / (theta_max - theta_min) * v_max;
+        // 線形補間計箁E        v_ems = (sensor_theta- theta_min) / (theta_max - theta_min) * v_max;
       }
 
       // 出力に反映
       f_out(1) = v_ems;
 
-      robot.set_to_dict("theta_res_deg", sensor_theta / deg2rad); // 確認用に度数法でも保存
-      robot.set_to_dict("da_ch1_voltage", v_ems);
+      robot.set_to_dict("theta_res_deg", sensor_theta / deg2rad); // 確認用に度数法でも保孁E      robot.set_to_dict("da_ch1_voltage", v_ems);
       robot.set_to_dict("ems_voltage", v_ems);
     
     }
 
   };
 
+  controller[mc::PI_EMS] = [](robot_system &robot)
+{
+  static double integral = 0.0;
+  static double V_in = 0.0;
+  static int count = 0;
+
+  constexpr int pi_update_interval_count = 50;
+  constexpr double pi_update_dt = 0.005;
+
+  const double K_ff = robot.get_from_dict("force_pi_K");
+  const double Kp = robot.get_from_dict("force_pi_Kp");
+  const double Ki = robot.get_from_dict("force_pi_Ki");
+  const double f_cmd = robot.get_from_dict("force_pi_f_cmd");
+  const double uth = robot.get_from_dict("force_pi_uth");
+  const double voltage_min = robot.get_from_dict("force_pi_voltage_min");
+  const double voltage_max = robot.get_from_dict("force_pi_voltage_max");
+
+  for (size_t i = 0; i < robot.joints.size(); ++i)
+  {
+    f_ref(i) = 0.0;
+    f_out(i) = 0.0;
+    f_vol(i) = 0.0;
+  }
+
+  if (robot.step() == 0)
+  {
+    integral = 0.0;
+    V_in = 0.0;
+    count = 0;
+  }
+
+  if (!robot.force_sensor_connected || robot.joints.empty())
+  {
+    integral = 0.0;
+    V_in = 0.0;
+    count = 0;
+
+    robot.set_to_dict("da_ch1_voltage", 0.0);
+    robot.set_to_dict("ems_voltage", 0.0);
+    std::exit(1);
+  }
+
+  const double f_m = Fz(0);
+
+  robot.set_to_dict("force_pi_measured", f_m);
+
+  count++;
+  
+  if (count >= pi_update_interval_count)
+  {
+    count = 0;
+
+    const double e = f_cmd - f_m;
+    integral += e * pi_update_dt;
+    const double ufb = (Kp * e) + (Ki * integral);
+
+    double uff = uth;
+    if (std::abs(K_ff) > 1e-9)
+      uff = (f_cmd / K_ff) + uth;
+
+    const double u = uff + ufb;
+    const double u_in = u - uth;
+
+    V_in = u_in;
+    if (V_in < voltage_min) V_in = voltage_min;
+    if (V_in > voltage_max) V_in = voltage_max;
+
+    // robot.set_to_dict("force_pi_error", e);
+    // robot.set_to_dict("force_pi_integral", integral);
+    // robot.set_to_dict("force_pi_ufb", ufb);
+    // robot.set_to_dict("force_pi_uff", uff);
+    // robot.set_to_dict("force_pi_u", u);
+    // robot.set_to_dict("force_pi_uin", u_in);
+  }
+
+  robot.set_to_dict("force_pi_count", static_cast<double>(count));
+  robot.set_to_dict("force_pi_v_in", V_in);
+  robot.set_to_dict("da_ch1_voltage", V_in);
+  robot.set_to_dict("ems_voltage", V_in);
+
+};
+
 }
+

@@ -8,6 +8,7 @@ namespace mc {
     Record,
     Bilateral,
     Angle_EMS,
+    PI_EMS,
     control_mode_size
   };
 } // namespace mc

@@ -46,6 +46,7 @@ public:
     // load remote config
     load_remote_config();
     load_ems_config();
+    load_force_pi_config();
     task_registration();
     std::cout << "constructor system controller" << std::endl;
   }
@@ -269,6 +270,33 @@ private:
       robot_.set_to_dict("ems_force_max",         20.0);
       robot_.set_to_dict("ems_voltage_threshold", 0.5);
       robot_.set_to_dict("ems_voltage_max",       3.3);
+    }
+  }
+
+  void load_force_pi_config()
+  {
+    try
+    {
+      boost::property_tree::ptree pt;
+      boost::property_tree::read_json("../config/force_pi_control.json", pt);
+      robot_.set_to_dict("force_pi_K",           pt.get<double>("K", 2.0));
+      robot_.set_to_dict("force_pi_Kp",          pt.get<double>("Kp", 1.0));
+      robot_.set_to_dict("force_pi_Ki",          pt.get<double>("Ki", 0.0));
+      robot_.set_to_dict("force_pi_f_cmd",       pt.get<double>("f_cmd", 0.0));
+      robot_.set_to_dict("force_pi_uth",         pt.get<double>("uth", 0.0));
+      robot_.set_to_dict("force_pi_voltage_min", pt.get<double>("voltage_min", 0.0));
+      robot_.set_to_dict("force_pi_voltage_max", pt.get<double>("voltage_max", robot_.get_from_dict("ems_voltage_max")));
+    }
+    catch (...)
+    {
+      std::cerr << "[system_controller] force_pi_control.json not found, using defaults" << std::endl;
+      robot_.set_to_dict("force_pi_K",           2.0);
+      robot_.set_to_dict("force_pi_Kp",          1.0);
+      robot_.set_to_dict("force_pi_Ki",          0.0);
+      robot_.set_to_dict("force_pi_f_cmd",       0.0);
+      robot_.set_to_dict("force_pi_uth",         0.0);
+      robot_.set_to_dict("force_pi_voltage_min", 0.0);
+      robot_.set_to_dict("force_pi_voltage_max", robot_.get_from_dict("ems_voltage_max"));
     }
   }
 };
