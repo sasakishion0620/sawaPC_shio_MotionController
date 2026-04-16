@@ -48,8 +48,11 @@ void thread_controller::each_loop_of_realtime_task(mc::thread::thread_list threa
   while(!should_finish_all_.load())
   {
     wait_for_sample_time(thread_id);
-    if (should_finish_all_.load())
+    if (should_finish_all_.load() || gui_force_exit_requested())
+    {
+      should_finish_all_.store(true);
       break;
+    }
     system_controller_ptr_->set_timer_sampling_time(control_timer::get_micro_time(thread_id) - start_time_vec_.at(thread_id), thread_id);
     start_time_vec_.at(thread_id) = control_timer::get_micro_time(thread_id);
     system_controller_ptr_->tasks_[thread_id](thread_id_to_sampling_frequency[thread_id]);

@@ -97,6 +97,11 @@ private:
   {
     while(!should_finish_all_)
     {
+      if (gui_force_exit_requested())
+      {
+        should_finish_all_.store(true);
+        break;
+      }
       start_time_vec_.at(thread_id) = control_timer::get_micro_time(thread_id);
       system_controller_ptr_->set_timer_sampling_time(start_time_vec_.at(thread_id) - end_time_vec_.at(thread_id), thread_id);
       system_controller_ptr_->tasks_[thread_id](0);
@@ -107,6 +112,11 @@ private:
 
   void all_loop_of_task(mc::thread::thread_list thread_id)
   {
+      if (gui_force_exit_requested())
+      {
+        should_finish_all_.store(true);
+        return;
+      }
       if ((system_controller_ptr_->tasks_[thread_id](0)) == system_controller::FINISH)
         should_finish_all_.store(true);
   }
