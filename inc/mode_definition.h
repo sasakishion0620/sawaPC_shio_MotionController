@@ -5,7 +5,7 @@ namespace mc {
     DA_check,
     ForceOffsetInit,
     // remote,
-    // Record,
+    Record,
     // Bilateral,
     // Angle_EMS,
     PI_EMS,
