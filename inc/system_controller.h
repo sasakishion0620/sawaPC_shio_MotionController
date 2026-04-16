@@ -113,6 +113,7 @@ public:
 
   virtual void close()
   {
+    zero_outputs();
     for (size_t i = 0; i < readers_ptr_.size(); ++i)
       readers_ptr_[i]->close();
     for (size_t i = 0; i < writers_ptr_.size(); ++i)
@@ -135,6 +136,18 @@ private:
 #define force_to_voltage(n) robot_.joints[(n)].parameter[mc::force_to_voltage]
 #define force_limit(n) robot_.joints[(n)].parameter[mc::force_limit]
 #define gear_ratio(n) robot_.joints[(n)].parameter[mc::gear_ratio]
+  void zero_outputs()
+  {
+    for (size_t i = 0; i < size(); ++i)
+    {
+      robot_.joints[i].data[mc::output][mc::f] = 0.0;
+      robot_.joints[i].data[mc::output][mc::f_dis] = 0.0;
+      robot_.joints[i].data[mc::output][mc::voltage] = 0.0;
+    }
+    robot_.set_to_dict("da_ch1_voltage", 0.0);
+    robot_.set_to_dict("ems_voltage", 0.0);
+  }
+
   // method
   void limit_force_output()
   {

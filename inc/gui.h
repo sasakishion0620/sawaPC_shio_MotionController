@@ -48,7 +48,7 @@ public:
     }
     clean_up_window(window_ptr_);
     if (gui_force_exit_requested())
-      std::exit(0);
+      std::cout << "GUI force exit requested" << std::endl;
     return SUCCEESS;
   }
 
