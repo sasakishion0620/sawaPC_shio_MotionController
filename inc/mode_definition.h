@@ -4,10 +4,10 @@ namespace mc {
     idle,
     DA_check,
     ForceOffsetInit,
-    remote,
-    Record,
-    Bilateral,
-    Angle_EMS,
+    // remote,
+    // Record,
+    // Bilateral,
+    // Angle_EMS,
     PI_EMS,
     control_mode_size
   };
