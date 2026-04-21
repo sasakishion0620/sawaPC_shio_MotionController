@@ -498,7 +498,7 @@ void mc::control::register_controller()
       uff = (f_cmd / K_ff) + uth;
 
     const double u = uff + ufb;
-    u_in = u - uth;
+    u_in = u;
 
     V_in = u_in;
     if (V_in < voltage_min) V_in = voltage_min;
