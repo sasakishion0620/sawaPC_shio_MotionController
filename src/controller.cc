@@ -409,6 +409,8 @@ void mc::control::register_controller()
   static FILE *fp = nullptr;
   static int time_count = 0;
 
+  double uff = 0.0;
+
   constexpr int pi_update_interval_count = 10;
   constexpr double pi_update_dt = 0.001;
 
@@ -459,7 +461,7 @@ void mc::control::register_controller()
       exit(1);
     }
 
-    fprintf(fp, "time,u_in,Vin,f_cmd,f_m,integral\n");
+    fprintf(fp, "time,u_in,Vin,f_cmd,f_m,integral,uff\n");
     printf("New log file created: %s\n", file_path.c_str());
   }
 
@@ -491,7 +493,7 @@ void mc::control::register_controller()
     integral += e * pi_update_dt;
     const double ufb = (Kp * e) + (Ki * integral);
 
-    double uff = uth;
+    uff = uth;
     if (std::abs(K_ff) > 1e-9)
       uff = (f_cmd / K_ff) + uth;
 
@@ -518,7 +520,7 @@ void mc::control::register_controller()
     if (fp != nullptr)
     {
       const double time = static_cast<double>(time_count) / 10000.0;
-      fprintf(fp, "%.3f,%lf,%lf,%.2f,%lf,%lf\n", time, u_in, V_in, f_cmd, f_m, integral);
+      fprintf(fp, "%.3f,%lf,%lf,%.2f,%lf,%lf,%lf\n", time, u_in, V_in, f_cmd, f_m, integral,uff);
       fflush(fp);
     }
   }
