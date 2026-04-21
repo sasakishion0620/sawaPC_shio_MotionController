@@ -409,8 +409,8 @@ void mc::control::register_controller()
   static FILE *fp = nullptr;
   static int time_count = 0;
 
-  constexpr int pi_update_interval_count = 50;
-  constexpr double pi_update_dt = 0.005;
+  constexpr int pi_update_interval_count = 10;
+  constexpr double pi_update_dt = 0.001;
 
   const double K_ff = robot.get_from_dict("force_pi_K");
   const double Kp = robot.get_from_dict("force_pi_Kp");
@@ -547,12 +547,16 @@ void mc::control::register_controller()
     static long long time_count = 0;
     static double Vin = 0.0;
 
-    constexpr double voltage_step = 0.2;
-    constexpr double voltage_max = 3.3;
-    constexpr long long step_count = 30000; // 10 kHz * 3 sec
-    constexpr long long record_count = 10;  // 10 kHz / 10 = 1 kHz
-    constexpr long long final_step_index = 16; // 0.0, 0.3, ..., 3.3
+    //jsonが読めなかった時のデフォルト値，初期の値
+    static std::string record_file_name = "default_test.csv";
+    static double voltage_step = 0.2;
+    static double voltage_max = 3.3;
+    static long long step_count = 30000; // 10 kHz * 3 sec
+    static long long record_count = 10;  // 10 kHz / 10 = 1 kHz
+    static long long final_step_index = 16; // 0.0, 0.2, ..., 3.2
 
+
+    //auto      → 型は自動で決めて,[&robot]  → 外のrobotを中でも使わせて
     auto output_zero = [&robot]()
     {
       for (size_t i = 0; i < robot.joints.size(); ++i)
@@ -565,7 +569,8 @@ void mc::control::register_controller()
       robot.set_to_dict("ems_voltage", 0.0);
       robot.set_to_dict("voltage_step_v_in", 0.0);
     };
-
+    
+    //初回だけ実行する処理
     if (robot.step() == 0)
     {
       if (fp != nullptr)
@@ -578,10 +583,38 @@ void mc::control::register_controller()
       Vin = 0.0;
       output_zero();
 
+      try
+      {
+        boost::property_tree::ptree pt;
+        boost::property_tree::read_json("../config/model_data_record.json", pt);
+        record_file_name = pt.get<std::string>("record_file_name", record_file_name);
+        voltage_step = pt.get<double>("voltage_step", voltage_step);
+        voltage_max = pt.get<double>("voltage_max", voltage_max);
+        step_count = pt.get<long long>("step_count", step_count);
+        record_count = pt.get<long long>("record_count", record_count);
+        final_step_index = pt.get<long long>("final_step_index", final_step_index);//右側はなかったときの値
+      }
+
+      catch (...)
+      {
+        std::cerr << "[model_data_record] model_data_record.json not found, using defaults" << std::endl;
+      }
+      
+      //設定値の補正
+      if (record_file_name.size() < 4 || record_file_name.substr(record_file_name.size() - 4) != ".csv")
+        record_file_name += ".csv";
+      if (voltage_step <= 0.0) voltage_step = 0.2;
+      if (voltage_max < 0.0) voltage_max = 0.0;
+      if (step_count <= 0) step_count = 30000;
+      if (record_count <= 0) record_count = 10;
+      if (final_step_index < 0) final_step_index = 0;
+
       const std::string data_dir = "../data";
-      mkdir(data_dir.c_str(), 0755);
-      const std::string file_path = data_dir + "/model_test3.csv";
+
+      mkdir(data_dir.c_str(), 0755);////c言語形式の文字列，権限
+      const std::string file_path = data_dir + "/" + record_file_name;
       fp = fopen(file_path.c_str(), "w");
+
       if (fp == nullptr)
       {
         std::printf("[model_data_record] failed to create csv: %s\n", file_path.c_str());
@@ -595,7 +628,6 @@ void mc::control::register_controller()
 
     const long long finish_count = (final_step_index + 1) * step_count;
 
-    
     if (time_count >= finish_count)
     {
       if (fp != nullptr)
@@ -604,14 +636,16 @@ void mc::control::register_controller()
         fclose(fp);
         fp = nullptr;
       }
+
       output_zero();
-      std::printf("[model_data_record] finished at 3.3V. exiting.\n");
+      std::printf("[model_data_record] finished. exiting.\n");
       exit(0);
     }
 
     if (time_count > 0 && time_count % step_count == 0)
     {
       Vin += voltage_step;
+
       if (Vin > voltage_max)
         Vin = voltage_max;
     }
