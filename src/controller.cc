@@ -459,7 +459,7 @@ void mc::control::register_controller()
       exit(1);
     }
 
-    fprintf(fp, "time,u_in,Vin,f_cmd,f_m\n");
+    fprintf(fp, "time,u_in,Vin,f_cmd,f_m,integral\n");
     printf("New log file created: %s\n", file_path.c_str());
   }
 
@@ -518,7 +518,7 @@ void mc::control::register_controller()
     if (fp != nullptr)
     {
       const double time = static_cast<double>(time_count) / 10000.0;
-      fprintf(fp, "%.3f,%lf,%lf,%.2f,%lf\n", time, u_in, V_in, f_cmd, f_m);
+      fprintf(fp, "%.3f,%lf,%lf,%.2f,%lf,%lf\n", time, u_in, V_in, f_cmd, f_m, integral);
       fflush(fp);
     }
   }
