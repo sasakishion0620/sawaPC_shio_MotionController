@@ -1,9 +1,9 @@
 {
-  "K": 7.0,
+  "K": 7.1,
   "Kp": 0.05,
-  "Ki": 0.01,
-  "f_cmd": 9.0,
-  "uth": 0.8,
+  "Ki": 0.0,
+  "f_cmd": 5.0,
+  "uth": 0.9,
   "voltage_min": 0.0,
   "voltage_max": 3.3,
   "record_file_name": "pi_test2"
