@@ -497,7 +497,7 @@ void mc::control::register_controller()
     if (std::abs(K_ff) > 1e-9)
       uff = (f_cmd / K_ff) + uth;
 
-    const double u = uff + ufb;
+    const double u = ufb ;//+ uff;
     u_in = u;
 
     V_in = u_in;
