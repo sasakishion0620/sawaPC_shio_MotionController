@@ -1,5 +1,5 @@
 {
-  "record_file_name": "model_test5.csv",
+  "record_file_name": "model_0422_test1.csv",
   "voltage_step": 0.2,
   "voltage_max": 3.3,
   "step_count": 30000,
