@@ -416,7 +416,7 @@ void mc::control::register_controller()
 
   const double K_ff = robot.get_from_dict("force_pi_K");
   const double Kp = robot.get_from_dict("force_pi_Kp");
-  const double Ki = robot.get_from_dict("force_pi_Ki");
+  const long double Ki = robot.get_from_dict("force_pi_Ki");
   const double f_cmd = robot.get_from_dict("force_pi_f_cmd");
   const double uth = robot.get_from_dict("force_pi_uth");
   const double voltage_min = robot.get_from_dict("force_pi_voltage_min");
