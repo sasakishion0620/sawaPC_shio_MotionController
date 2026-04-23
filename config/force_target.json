@@ -1,5 +1,5 @@
 {
-  "type": "constant",
+  "type": "sin",
   "type_options": ["constant", "sin", "trapezoid"],
 
   "value": 4.0,
@@ -11,12 +11,12 @@
   "min": 0.0,
   "max": 10.0,
 
-  "low1": 4.0,
-  "high": 8.0,
-  "low2": 4.0,
-  "low1_time": 1.0,
-  "rise_time": 0.5,
+  "low1": 0.0,
+  "high": 4.0,
+  "low2": 0.0,
+  "low1_time": 3.0,
+  "rise_time": 2.0,
   "high_time": 2.0,
-  "fall_time": 0.5,
-  "low2_time": 1.0
+  "fall_time": 2.0,
+  "low2_time": 3.0
 }

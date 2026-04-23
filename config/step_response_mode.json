@@ -1,7 +1,7 @@
 {
   "record_file_name": "step_response.csv",
-  "initial_zero_time": 1.0,
-  "step_input_value": 1.0,
+  "initial_zero_time": 2.0,
+  "step_input_value": 2.0,
   "max_value": 3.3,
   "record_end_time": 5.0,
   "record_count": 10
