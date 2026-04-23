@@ -115,13 +115,19 @@ namespace mc {
       float t = gui_time;
       const bool force_sensor_connected = robot_system_ptr->force_sensor_enabled && robot_system_ptr->force_sensor_connected;
       const bool is_force_pi_control = robot_system_ptr->get_control_mode() == mc::PI_EMS;
+      const double f_cmd = robot_system_ptr->get_from_dict("force_pi_f_cmd");
       sdata_vec[0].add_point(t, static_cast<float>(Fx(0)));
       sdata_vec[1].add_point(t, static_cast<float>(Fy(0)));
       sdata_vec[2].add_point(t, static_cast<float>(Fz(0)));
       sdata_vec[3].add_point(t, static_cast<float>(Mx(0)));
       sdata_vec[4].add_point(t, static_cast<float>(My(0)));
       sdata_vec[5].add_point(t, static_cast<float>(Mz(0)));
-      sdata_vec[6].add_point(t, static_cast<float>(robot_system_ptr->get_from_dict("force_pi_f_cmd")));
+      sdata_vec[6].add_point(t, static_cast<float>(f_cmd));
+
+      if (is_force_pi_control)
+      {
+        ImGui::Text("f_cmd target: %.3f", f_cmd);
+      }
 
       ImPlot::SetNextPlotLimitsX(t - history, t + history, ImGuiCond_Always);
       if (sdata_vec[0].data.size() > 0 && ImPlot::BeginPlot("Force", "time [sec]", "force", ImVec2(-1, 320)))
@@ -131,7 +137,10 @@ namespace mc {
         if (force_sensor_connected)
           ImPlot::PlotLine("Fz", &sdata_vec[2].data[0].x, &sdata_vec[2].data[0].y, sdata_vec[2].data.size(), sdata_vec[2].offset, 2*sizeof(float));
         if (is_force_pi_control)
+        {
+          ImPlot::SetNextLineStyle(ImVec4(1.0f, 0.85f, 0.10f, 1.0f), 2.0f);
           ImPlot::PlotLine("f_cmd", &sdata_vec[6].data[0].x, &sdata_vec[6].data[0].y, sdata_vec[6].data.size(), sdata_vec[6].offset, 2*sizeof(float));
+        }
         ImPlot::EndPlot();
       }
 
