@@ -1,10 +1,10 @@
 {
-  "K": 3.3,
-  "Kp": 1.2,
+  "K": 5.2,
+  "Kp": 0.7,
   "Ki": 0.1,
   "f_cmd": 4.0,
-  "uth": 0.35,
+  "uth": 0.44,
   "voltage_min": 0.0,
   "voltage_max": 3.3,
-  "record_file_name": "pi_noff_0423_test1_0.1"
+  "record_file_name": "pi_noff_0423_kp=0.7_ki=0.1"
 }
