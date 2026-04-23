@@ -692,5 +692,132 @@ void mc::control::register_controller()
     time_count++;
   };
 
+  controller[mc::step_response_mode] = [](robot_system &robot)
+  {
+    static FILE *fp = nullptr;
+    static long long time_count = 0;
+    static std::string record_file_name = "step_response.csv";
+    static double initial_zero_time = 1.0;
+    static double step_input_value = 1.0;
+    static double max_value = 3.3;
+    static double record_end_time = 5.0;
+    static long long record_count = 10;
+
+    auto output_zero = [&robot]()
+    {
+      for (size_t i = 0; i < robot.joints.size(); ++i)
+      {
+        f_ref(i) = 0.0;
+        f_out(i) = 0.0;
+        f_vol(i) = 0.0;
+      }
+      robot.set_to_dict("da_ch1_voltage", 0.0);
+      robot.set_to_dict("ems_voltage", 0.0);
+      robot.set_to_dict("step_response_v_in", 0.0);
+    };
+
+    double control_dt = robot.get_from_dict("dt");
+    if (control_dt <= 0.0)
+    {
+      control_dt = 0.0001;
+    }
+
+    if (robot.step() == 0)
+    {
+      if (fp != nullptr)
+      {
+        fclose(fp);
+        fp = nullptr;
+      }
+
+      time_count = 0;
+      output_zero();
+
+      try
+      {
+        boost::property_tree::ptree pt;
+        boost::property_tree::read_json("../config/step_response_mode.json", pt);
+        record_file_name = pt.get<std::string>("record_file_name", record_file_name);
+        initial_zero_time = pt.get<double>("initial_zero_time", initial_zero_time);
+        step_input_value = pt.get<double>("step_input_value", step_input_value);
+        max_value = pt.get<double>("max_value", max_value);
+        record_end_time = pt.get<double>("record_end_time", record_end_time);
+        record_count = pt.get<long long>("record_count", record_count);
+      }
+      catch (...)
+      {
+        std::cerr << "[step_response_mode] step_response_mode.json not found, using defaults" << std::endl;
+      }
+
+      if (record_file_name.size() < 4 || record_file_name.substr(record_file_name.size() - 4) != ".csv")
+        record_file_name += ".csv";
+      if (initial_zero_time < 0.0) initial_zero_time = 0.0;
+      if (max_value < 0.0) max_value = 0.0;
+      if (record_end_time <= 0.0) record_end_time = initial_zero_time + 1.0;
+      if (record_count <= 0) record_count = 10;
+
+      const std::string data_dir = "../data";
+      mkdir(data_dir.c_str(), 0755);
+      const std::string file_path = data_dir + "/" + record_file_name;
+      fp = fopen(file_path.c_str(), "w");
+
+      if (fp == nullptr)
+      {
+        std::printf("[step_response_mode] failed to create csv: %s\n", file_path.c_str());
+        robot.control_mode_request = mc::idle;
+        return;
+      }
+
+      std::fprintf(fp, "time,Vin,Force\n");
+      std::printf(
+        "[step_response_mode] started: csv=%s, zero_time=%.6f, step=%.6f, max=%.6f, end=%.6f\n",
+        file_path.c_str(), initial_zero_time, step_input_value, max_value, record_end_time);
+    }
+
+    const double time = static_cast<double>(time_count) * control_dt;
+
+    if (time >= record_end_time)
+    {
+      if (fp != nullptr)
+      {
+        fflush(fp);
+        fclose(fp);
+        fp = nullptr;
+      }
+
+      output_zero();
+      std::printf("[step_response_mode] finished. exiting.\n");
+      exit(0);
+    }
+
+    double Vin = (time < initial_zero_time) ? 0.0 : step_input_value;
+    if (Vin > max_value) Vin = max_value;
+    if (Vin < 0.0) Vin = 0.0;
+
+    for (size_t i = 0; i < robot.joints.size(); ++i)
+    {
+      f_ref(i) = 0.0;
+      f_out(i) = 0.0;
+      f_vol(i) = 0.0;
+    }
+
+    const double measured_force = Fz(0);
+    if (time_count % 10000 == 0)
+    {
+      std::printf("time=%.3f, Vin=%.3f, Force=%.6f\n", time, Vin, measured_force);
+    }
+
+    robot.set_to_dict("da_ch1_voltage", Vin);
+    robot.set_to_dict("ems_voltage", Vin);
+    robot.set_to_dict("step_response_v_in", Vin);
+
+    if (fp != nullptr && time_count % record_count == 0)
+    {
+      std::fprintf(fp, "%.6f,%.6f,%.9f\n", time, Vin, measured_force);
+    }
+
+    time_count++;
+  };
+
 }
 

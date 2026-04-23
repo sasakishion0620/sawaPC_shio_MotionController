@@ -10,6 +10,7 @@ namespace mc {
     // Angle_EMS,
     PI_EMS,
     ModelDataRecord,
+    step_response_mode,
     control_mode_size
   };
 } // namespace mc
