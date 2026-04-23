@@ -28,6 +28,7 @@ add_executable(${TARGET_NAME}
   ./src/system_controller.cc
   ./src/gui.cc
   ./src/leptrino.cc
+  ./src/force_target_generator.cc
   ./src/controller.cc
 )
 

@@ -1,5 +1,6 @@
 #include "controller.h"
 #include "control_timer.h"
+#include "force_target_generator.h"
 #include "thread_definition.h"
 #include <cstdlib>
 #include <cstdio>
@@ -408,6 +409,7 @@ void mc::control::register_controller()
   static int count = 0;
   static FILE *fp = nullptr;
   static int time_count = 0;
+  static ForceTargetGenerator force_target;
 
   double uff = 0.0;
 
@@ -417,10 +419,15 @@ void mc::control::register_controller()
   const double K_ff = robot.get_from_dict("force_pi_K");
   const double Kp = robot.get_from_dict("force_pi_Kp");
   const long double Ki = robot.get_from_dict("force_pi_Ki");
-  const double f_cmd = robot.get_from_dict("force_pi_f_cmd");
+  const double fallback_f_cmd = robot.get_from_dict("force_pi_f_cmd");
   const double uth = robot.get_from_dict("force_pi_uth");
   const double voltage_min = robot.get_from_dict("force_pi_voltage_min");
   const double voltage_max = robot.get_from_dict("force_pi_voltage_max");
+  double control_dt = robot.get_from_dict("dt");
+  if (control_dt <= 0.0)
+  {
+    control_dt = 0.0001;
+  }
 
   for (size_t i = 0; i < robot.joints.size(); ++i)
   {
@@ -436,7 +443,13 @@ void mc::control::register_controller()
     u_in = 0.0;
     count = 0;
     time_count = 0;
+    force_target.load("../config/force_target.json", fallback_f_cmd);
+    force_target.reset();
   }
+
+  const double time = static_cast<double>(time_count) * control_dt;
+  const double f_cmd = force_target.value(time);
+  robot.set_to_dict("force_pi_f_cmd", f_cmd);
 
   if (fp == nullptr)
   {
@@ -484,6 +497,7 @@ void mc::control::register_controller()
 
   robot.set_to_dict("force_pi_measured", f_m);
 
+  
   count++;
   if (count >= pi_update_interval_count)
   {
@@ -519,8 +533,7 @@ void mc::control::register_controller()
   {
     if (fp != nullptr)
     {
-      const double time = static_cast<double>(time_count) / 10000.0;
-      fprintf(fp, "%.3f,%lf,%lf,%.2f,%lf,%lf,%lf\n", time, u_in, V_in, f_cmd, f_m, integral,uff);
+      fprintf(fp, "%.3f,%lf,%lf,%.6f,%lf,%lf,%lf\n", time, u_in, V_in, f_cmd, f_m, integral,uff);
       fflush(fp);
     }
   }
