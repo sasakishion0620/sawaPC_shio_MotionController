@@ -42,7 +42,10 @@ void system_controller::task_registration()
 {
   tasks_[::compute_engine] = [this](ll sample_frequency)
   {
-    (void)(sample_frequency);
+    if (sample_frequency > 0)
+    {
+      robot_.set_to_dict("dt", 1.0 / static_cast<double>(sample_frequency));
+    }
     if (robot_.is_control_mode_changed())
     {
       robot_.reset_control_step();

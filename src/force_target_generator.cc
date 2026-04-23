@@ -56,6 +56,9 @@ void ForceTargetGenerator::load(const std::string &config_file, double fallback_
       amplitude_ = pt.get<double>("amplitude", 0.0);
       frequency_hz_ = pt.get<double>("frequency_hz", 0.0);
       phase_rad_ = pt.get<double>("phase_deg", 0.0) * kPi / 180.0;
+      std::cout << "[force_target_generator] type=sin, offset=" << offset_
+                << ", amplitude=" << amplitude_
+                << ", frequency_hz=" << frequency_hz_ << std::endl;
       
       //get_optionalは値があれば取得，なければ空
       const auto min_opt = pt.get_optional<double>("min");
@@ -83,14 +86,23 @@ void ForceTargetGenerator::load(const std::string &config_file, double fallback_
       high_time_ = std::max(0.0, pt.get<double>("high_time", 0.0));
       fall_time_ = std::max(0.0, pt.get<double>("fall_time", 0.0));
       low2_time_ = std::max(0.0, pt.get<double>("low2_time", 0.0));
+      std::cout << "[force_target_generator] type=trapezoid, low1=" << low1_
+                << ", high=" << high_
+                << ", low2=" << low2_ << std::endl;
     }
 
 
     //一定値
     else
     {
+      if (type != "constant")
+      {
+        std::cerr << "[force_target_generator] unknown type: " << type
+                  << ", using constant target" << std::endl;
+      }
       type_ = Type::Constant;
       constant_value_ = pt.get<double>("value", fallback_value);
+      std::cout << "[force_target_generator] type=constant, value=" << constant_value_ << std::endl;
     }
   }
 

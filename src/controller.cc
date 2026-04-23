@@ -419,7 +419,7 @@ void mc::control::register_controller()
   const double K_ff = robot.get_from_dict("force_pi_K");
   const double Kp = robot.get_from_dict("force_pi_Kp");
   const long double Ki = robot.get_from_dict("force_pi_Ki");
-  const double fallback_f_cmd = robot.get_from_dict("force_pi_f_cmd");
+  constexpr double fallback_f_cmd = 0.0;
   const double uth = robot.get_from_dict("force_pi_uth");
   const double voltage_min = robot.get_from_dict("force_pi_voltage_min");
   const double voltage_max = robot.get_from_dict("force_pi_voltage_max");
