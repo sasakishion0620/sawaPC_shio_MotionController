@@ -1,8 +1,8 @@
 {
-  "record_file_name": "step_response.csv",
+  "record_file_name": "step_response_0424_Vin=1.5.csv",
   "initial_zero_time": 2.0,
-  "step_input_value": 2.0,
+  "step_input_value": 1.5,
   "max_value": 3.3,
-  "record_end_time": 5.0,
+  "record_end_time": 10.0,
   "record_count": 10
 }

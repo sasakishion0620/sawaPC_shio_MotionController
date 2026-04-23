@@ -1,9 +1,9 @@
 {
-  "K": 5.2,
-  "Kp": 0.7,
-  "Ki": 0.1,
-  "uth": 0.44,
+  "K": 5.0,
+  "Kp": 1.2,
+  "Ki": 1.2,
+  "uth": 0.8,
   "voltage_min": 0.0,
   "voltage_max": 3.3,
-  "record_file_name": "pi_noff_0423_testtttt"
+  "record_file_name": "pi_noff_0424_test1_kp=1.2_ki=1.2_trapezoid"
 }
