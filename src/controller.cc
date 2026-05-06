@@ -699,7 +699,7 @@ void mc::control::register_controller()
 
 
 
-  
+
   controller[mc::step_response_mode] = [](robot_system &robot)
   {
     static FILE *fp = nullptr;
