@@ -1,10 +1,11 @@
 {
-  "A": 1.0,
-  "B": 1.0,
-  "C": 0.0,
-  "alpha": 1.0,
-  "K1": 0.0,
-  "K2": 0.0,
+  "A": -27,
+  "B": 0.003,
+  "C": 25,
+  "alpha": 3.3,
+  "k" : 3.3,
+  "K1": 1.0,
+  "K2": 1.0,
   "voltage_min": 0.0,
   "voltage_max": 3.3,
   "record_file_name": "nonlinear_ems.csv"
