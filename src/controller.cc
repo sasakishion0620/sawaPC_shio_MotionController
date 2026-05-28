@@ -1172,7 +1172,6 @@ if (count >= update_interval_count)
     time_count++;
   };
 
-}
 
 
 
@@ -1182,8 +1181,8 @@ if (count >= update_interval_count)
 
 
 
-controller[mc::NONLINEAR_EMS] =
-[](robot_system &robot)
+
+controller[mc::NONLINEAR_EMS] = [](robot_system &robot)
 {
     // ========================================
     // 状態保持
@@ -1334,3 +1333,6 @@ controller[mc::NONLINEAR_EMS] =
 
     time_count++;
 };
+
+
+}

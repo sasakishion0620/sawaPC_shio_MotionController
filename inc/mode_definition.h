@@ -11,6 +11,7 @@ namespace mc {
     PI_EMS,
     ModelDataRecord,
     step_response_mode,
+    NONLINEAR_EMS,
     control_mode_size
   };
 } // namespace mc
