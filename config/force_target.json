@@ -1,5 +1,5 @@
 {
-  "type": "trapezoid",
+  "type": "constant",
   "type_options": ["constant", "sin", "trapezoid"],
 
   "value": 4.0,
