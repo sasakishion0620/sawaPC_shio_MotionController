@@ -656,7 +656,7 @@ controller[mc::NONLINEAR_EMS] = [](robot_system &robot)
 
   if (fp == nullptr)
   {
-    const std::string data_dir = "../data/0528";
+    const std::string data_dir = "../data/2026_05_28";
 
     mkdir(data_dir.c_str(), 0755);
 
