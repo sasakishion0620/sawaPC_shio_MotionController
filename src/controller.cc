@@ -749,7 +749,7 @@ if (count >= update_interval_count)
     eta_tilde = eta - (k * f_cmd);
 
     x_tilde = f_m - f_cmd;
-    
+
 
     v_tilde = -(K1 * x_tilde) - (K2 * eta_tilde);
 
@@ -1042,6 +1042,7 @@ if (count >= update_interval_count)
   
   controller[mc::step_response_mode] = [](robot_system &robot)
   {
+    //宣言と初期値
     static FILE *fp = nullptr;
     static long long time_count = 0;
     static std::string record_file_name = "step_response.csv";
@@ -1139,6 +1140,8 @@ if (count >= update_interval_count)
     }
 
     double Vin = (time < initial_zero_time) ? 0.0 : step_input_value;
+    double Pw = Vin * 500/3.3;
+    
 
     if (Vin > max_value) Vin = max_value;
     if (Vin < 0.0) Vin = 0.0;
@@ -1154,7 +1157,7 @@ if (count >= update_interval_count)
 
     if (time_count % 10000 == 0)
     {
-      std::printf("time=%.3f, Vin=%.3f, Force=%.6f\n", time, Vin, measured_force);
+      std::printf("time=%.3f, Vin=%.3f, Pw=%.3f, Force=%.6f\n", time, Vin, Pw, measured_force);
     }
 
     robot.set_to_dict("da_ch1_voltage", Vin);
@@ -1163,7 +1166,7 @@ if (count >= update_interval_count)
 
     if (fp != nullptr && time_count % record_count == 0)
     {
-      std::fprintf(fp, "%.6f,%.6f,%.9f\n", time, Vin, measured_force);
+      std::fprintf(fp, "%.6f,%.6f,%.6f,%.9f\n", time, Vin, Pw, measured_force);
     }
 
     time_count++;
