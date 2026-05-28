@@ -324,8 +324,10 @@ private:
       robot_.set_to_dict("nl_B", pt.get<double>("B", 1.0));
       robot_.set_to_dict("nl_C", pt.get<double>("C", 0.0));
       robot_.set_to_dict("nl_alpha", pt.get<double>("alpha", 1.0));
+      robot_.set_to_dict("nl_k", pt.get<double>("k", 0.0));
       robot_.set_to_dict("nl_K1", pt.get<double>("K1", 0.0));
       robot_.set_to_dict("nl_K2", pt.get<double>("K2", 0.0));
+      robot_.set_to_dict("nonlinear_f_cmd", pt.get<double>("f_cmd", pt.get<double>("value", 0.0)));
       robot_.set_to_dict("nl_voltage_min", pt.get<double>("voltage_min", 0.0));
       robot_.set_to_dict("nl_voltage_max", pt.get<double>("voltage_max", 3.3));
     }
@@ -336,8 +338,10 @@ private:
       robot_.set_to_dict("nl_B", 1.0);
       robot_.set_to_dict("nl_C", 0.0);
       robot_.set_to_dict("nl_alpha", 1.0);
+      robot_.set_to_dict("nl_k", 0.0);
       robot_.set_to_dict("nl_K1", 0.0);
       robot_.set_to_dict("nl_K2", 0.0);
+      robot_.set_to_dict("nonlinear_f_cmd", 0.0);
       robot_.set_to_dict("nl_voltage_min", 0.0);
       robot_.set_to_dict("nl_voltage_max", 3.3);
     }

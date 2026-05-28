@@ -576,7 +576,6 @@ controller[mc::NONLINEAR_EMS] = [](robot_system &robot)
   static FILE *fp = nullptr;
   static int time_count = 0;
   static ForceTargetGenerator force_target;
-  constexpr double fallback_f_cmd = 0.0;
 
   constexpr int update_interval_count = 10;
 
@@ -608,10 +607,10 @@ controller[mc::NONLINEAR_EMS] = [](robot_system &robot)
   
 
   const double voltage_min =
-      robot.get_from_dict("force_pi_voltage_min");
+      robot.get_from_dict("nl_voltage_min");
 
   const double voltage_max =
-      robot.get_from_dict("force_pi_voltage_max");
+      robot.get_from_dict("nl_voltage_max");
 
   double control_dt =
       robot.get_from_dict("dt");
@@ -633,6 +632,8 @@ controller[mc::NONLINEAR_EMS] = [](robot_system &robot)
 
   if (robot.step() == 0)
   {
+    const double fallback_f_cmd =
+        robot.get_from_dict("nonlinear_f_cmd");
 
     V_in = 0.0;
     u_in = 0.0;
@@ -663,7 +664,7 @@ controller[mc::NONLINEAR_EMS] = [](robot_system &robot)
     boost::property_tree::ptree pt;
 
     boost::property_tree::read_json(
-        "../config/force_pi_control.json",
+        "../config/nonlinear_ems.json",
         pt);
 
     std::string record_file_name =
