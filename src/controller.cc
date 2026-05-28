@@ -401,6 +401,11 @@ void mc::control::register_controller()
 
 */
 
+
+
+
+
+
   controller[mc::PI_EMS] = [](robot_system &robot)
 {
   static double integral = 0.0;
@@ -451,7 +456,10 @@ void mc::control::register_controller()
   const double f_cmd = force_target.value(time);
   robot.set_to_dict("force_pi_f_cmd", f_cmd);
 
+
+
   if (fp == nullptr)
+
   {
     const std::string data_dir = "../data";
     mkdir(data_dir.c_str(), 0755);
@@ -477,6 +485,7 @@ void mc::control::register_controller()
     fprintf(fp, "time,u_in,Vin,f_cmd,f_m,integral,uff\n");
     printf("New log file created: %s\n", file_path.c_str());
   }
+
 
 
 
@@ -539,6 +548,297 @@ void mc::control::register_controller()
   }
 
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+controller[mc::NONLINEAR_EMS] = [](robot_system &robot)
+{
+
+
+  static double V_in = 0.0;
+  static double u_in = 0.0;
+ 
+
+  static int count = 0;
+  static FILE *fp = nullptr;
+  static int time_count = 0;
+  static ForceTargetGenerator force_target;
+  constexpr double fallback_f_cmd = 0.0;
+
+  constexpr int update_interval_count = 10;
+
+  //パラメータ読み込み
+  //モデルパラメータ
+  const double A =
+      robot.get_from_dict("nl_A");
+
+  const double B =
+      robot.get_from_dict("nl_B");
+
+  const double C =
+      robot.get_from_dict("nl_C");
+
+  const double alpha =
+      robot.get_from_dict("nl_alpha");
+  
+  const double k =
+      robot.get_from_dict("nl_k");
+
+  //フィードバックゲイン
+  const double K1 =
+      robot.get_from_dict("nl_K1");
+
+  const double K2 =
+      robot.get_from_dict("nl_K2");
+
+
+  
+
+  const double voltage_min =
+      robot.get_from_dict("force_pi_voltage_min");
+
+  const double voltage_max =
+      robot.get_from_dict("force_pi_voltage_max");
+
+  double control_dt =
+      robot.get_from_dict("dt");
+
+
+
+  if (control_dt <= 0.0)
+  {
+    control_dt = 0.0001;
+  }
+
+  //出力初期化
+  for (size_t i = 0; i < robot.joints.size(); ++i)
+  {
+    f_ref(i) = 0.0;
+    f_out(i) = 0.0;
+    f_vol(i) = 0.0;
+  }
+
+  if (robot.step() == 0)
+  {
+
+    V_in = 0.0;
+    u_in = 0.0;
+    count = 0;
+    time_count = 0;
+
+    force_target.load(
+        "../config/force_target.json",
+        fallback_f_cmd);
+
+    force_target.reset();
+  }
+
+  const double time =
+      static_cast<double>(time_count)* control_dt;
+
+  const double f_cmd = force_target.value(time);
+
+  robot.set_to_dict(
+      "nonlinear_f_cmd", f_cmd);
+
+  if (fp == nullptr)
+  {
+    const std::string data_dir = "../data";
+
+    mkdir(data_dir.c_str(), 0755);
+
+    boost::property_tree::ptree pt;
+
+    boost::property_tree::read_json(
+        "../config/force_pi_control.json",
+        pt);
+
+    std::string record_file_name =
+        pt.get<std::string>(
+            "record_file_name",
+            "no_name.csv");
+
+    if (record_file_name.size() < 4 ||
+        record_file_name.substr(
+            record_file_name.size() - 4)
+            != ".csv")
+    {
+      record_file_name += ".csv";
+    }
+
+    const std::string file_path =
+        data_dir + "/" + record_file_name;
+
+    fp = fopen(file_path.c_str(), "w");
+
+    if (fp == nullptr)
+    {
+      printf(
+          "Error: Could not create file %s\n",
+          file_path.c_str());
+
+      exit(1);
+    }
+
+
+    fprintf(
+        fp,
+        "time,u_in,Vin,f_cmd,f_m,eta,v,v_tilde\n");
+
+    printf(
+        "New log file created: %s\n",
+        file_path.c_str());
+  }
+
+  if (!robot.force_sensor_connected ||
+      robot.joints.empty())
+  {
+    V_in = 0.0;
+    u_in = 0.0;
+    count = 0;
+
+    robot.set_to_dict(
+        "da_ch1_voltage",
+        0.0);
+
+    robot.set_to_dict(
+        "ems_voltage",
+        0.0);
+
+    exit(1);
+  }
+
+
+  const double f_m = Fz(0);
+
+  robot.set_to_dict(
+      "nonlinear_measured",
+      f_m);
+
+  //カウンタを増やす
+  count++;
+
+//制御器の部分
+if (count >= update_interval_count)
+{
+    double eta ;
+    double x_tilde;
+    double eta_tilde;
+    double v_tilde;
+    double denom;
+    double v;
+
+
+    count = 0;
+
+    eta = alpha * (A * exp(-B * u_in) + C);
+
+    eta_tilde = eta - (k * f_cmd);
+
+    x_tilde = f_m - f_cmd;
+    
+
+    v_tilde = -(K1 * x_tilde) - (K2 * eta_tilde);
+
+    denom = B * A * alpha * exp(-B * u_in);
+
+    if (std::abs(denom) < 1e-6)
+    {
+        denom = -1e-6;
+    }
+
+    v = -(1.0 / denom) * v_tilde;
+
+    u_in += v * control_dt;
+
+    V_in = u_in * 3.3 / 500.0;
+
+    if (V_in < voltage_min)
+        V_in = voltage_min;
+
+    if (V_in > voltage_max)
+        V_in = voltage_max;
+
+    robot.set_to_dict("nonlinear_eta", eta);
+
+    robot.set_to_dict("nonlinear_x_tilde", x_tilde);
+
+    robot.set_to_dict("nonlinear_eta_tilde", eta_tilde);
+
+    robot.set_to_dict("nonlinear_v", v);
+
+    robot.set_to_dict("nonlinear_v_tilde", v_tilde);
+}
+
+  robot.set_to_dict(
+      "nonlinear_count",
+      static_cast<double>(count));
+
+  robot.set_to_dict(
+      "nonlinear_v_in",
+      V_in);
+
+  robot.set_to_dict(
+      "da_ch1_voltage",
+      V_in);
+
+  robot.set_to_dict(
+      "ems_voltage",
+      V_in);
+
+  time_count++;
+
+  if (time_count % 10 == 0)
+  {
+    if (fp != nullptr)
+    {
+      fprintf(
+          fp,
+          "%.3f,%lf,%lf,%.6f,%lf,%lf,%lf,%lf\n",
+          time,
+          u_in,
+          V_in,
+          f_cmd,
+          f_m,
+          robot.get_from_dict("nonlinear_eta"),
+          robot.get_from_dict("nonlinear_v"),
+          robot.get_from_dict("nonlinear_v_tilde"));
+
+      fflush(fp);
+    }
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -700,6 +1000,46 @@ void mc::control::register_controller()
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
   controller[mc::step_response_mode] = [](robot_system &robot)
   {
     static FILE *fp = nullptr;
@@ -799,6 +1139,7 @@ void mc::control::register_controller()
     }
 
     double Vin = (time < initial_zero_time) ? 0.0 : step_input_value;
+
     if (Vin > max_value) Vin = max_value;
     if (Vin < 0.0) Vin = 0.0;
 
@@ -810,6 +1151,7 @@ void mc::control::register_controller()
     }
 
     const double measured_force = Fz(0);
+
     if (time_count % 10000 == 0)
     {
       std::printf("time=%.3f, Vin=%.3f, Force=%.6f\n", time, Vin, measured_force);
@@ -829,3 +1171,163 @@ void mc::control::register_controller()
 
 }
 
+
+
+
+
+
+
+
+
+controller[mc::NONLINEAR_EMS] =
+[](robot_system &robot)
+{
+    // ========================================
+    // 状態保持
+    // ========================================
+
+    static double u = 0.0;
+    static int count = 0;
+    static int time_count = 0;
+
+    // ========================================
+    // パラメータ
+    // ========================================
+
+    const double dt =
+        std::max(
+            robot.get_from_dict("dt"),
+            0.0001);
+
+    const double A =
+        robot.get_from_dict("nl_A");
+
+    const double B =
+        robot.get_from_dict("nl_B");
+
+    const double C =
+        robot.get_from_dict("nl_C");
+
+    const double alpha =
+        robot.get_from_dict("nl_alpha");
+
+    const double K1 =
+        robot.get_from_dict("nl_K1");
+
+    const double K2 =
+        robot.get_from_dict("nl_K2");
+
+    const double voltage_min =
+        robot.get_from_dict("voltage_min");
+
+    const double voltage_max =
+        robot.get_from_dict("voltage_max");
+
+    // ========================================
+    // 初期化
+    // ========================================
+
+    if(robot.step() == 0)
+    {
+        u = 0.0;
+        count = 0;
+        time_count = 0;
+    }
+
+    // ========================================
+    // センサ取得
+    // ========================================
+
+    const double force =
+        Fz(0);
+
+    // ========================================
+    // 非線形項
+    // eta = A exp(-Bu) + C
+    // ========================================
+
+    const double eta =
+        A * exp(-B * u) + C;
+
+    // ========================================
+    // 線形制御入力
+    // v_bar = -K1 x - K2 eta
+    // ========================================
+
+    const double v_bar =
+        (-K1 * force)
+        - (K2 * eta);
+
+    // ========================================
+    // 入力変換
+    // v = -(1/(BAαexp(-Bu))) v_bar
+    // ========================================
+
+    double denom =
+        B * A * alpha
+        * exp(-B * u);
+
+    if(std::abs(denom) < 1e-6)
+    {
+        denom = 1e-6;
+    }
+
+    const double v =
+        -(1.0 / denom)
+        * v_bar;
+
+    // ========================================
+    // 入力積分
+    // u[k+1] = u[k] + v dt
+    // ========================================
+
+    u += v * dt;
+
+    // ========================================
+    // 飽和
+    // ========================================
+
+    if(u < voltage_min)
+    {
+        u = voltage_min;
+    }
+
+    if(u > voltage_max)
+    {
+        u = voltage_max;
+    }
+
+    // ========================================
+    // EMS出力
+    // ========================================
+
+    robot.set_to_dict(
+        "da_ch1_voltage",
+        u);
+
+    robot.set_to_dict(
+        "ems_voltage",
+        u);
+
+    // ========================================
+    // ログ用
+    // ========================================
+
+    robot.set_to_dict(
+        "nonlinear_force",
+        force);
+
+    robot.set_to_dict(
+        "nonlinear_eta",
+        eta);
+
+    robot.set_to_dict(
+        "nonlinear_v",
+        v);
+
+    robot.set_to_dict(
+        "nonlinear_u",
+        u);
+
+    time_count++;
+};

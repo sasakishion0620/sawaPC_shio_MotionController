@@ -47,6 +47,7 @@ public:
     load_remote_config();
     load_ems_config();
     load_force_pi_config();
+    load_nonlinear_ems_config();
     task_registration();
     std::cout << "constructor system controller" << std::endl;
   }
@@ -310,6 +311,35 @@ private:
       robot_.set_to_dict("force_pi_uth",         0.0);
       robot_.set_to_dict("force_pi_voltage_min", 0.0);
       robot_.set_to_dict("force_pi_voltage_max", robot_.get_from_dict("ems_voltage_max"));
+    }
+  }
+
+  void load_nonlinear_ems_config()
+  {
+    try
+    {
+      boost::property_tree::ptree pt;
+      boost::property_tree::read_json("../config/nonlinear_ems.json", pt);
+      robot_.set_to_dict("nl_A", pt.get<double>("A", 1.0));
+      robot_.set_to_dict("nl_B", pt.get<double>("B", 1.0));
+      robot_.set_to_dict("nl_C", pt.get<double>("C", 0.0));
+      robot_.set_to_dict("nl_alpha", pt.get<double>("alpha", 1.0));
+      robot_.set_to_dict("nl_K1", pt.get<double>("K1", 0.0));
+      robot_.set_to_dict("nl_K2", pt.get<double>("K2", 0.0));
+      robot_.set_to_dict("nl_voltage_min", pt.get<double>("voltage_min", 0.0));
+      robot_.set_to_dict("nl_voltage_max", pt.get<double>("voltage_max", 3.3));
+    }
+    catch (...)
+    {
+      std::cerr << "[system_controller] nonlinear_ems.json not found, using defaults" << std::endl;
+      robot_.set_to_dict("nl_A", 1.0);
+      robot_.set_to_dict("nl_B", 1.0);
+      robot_.set_to_dict("nl_C", 0.0);
+      robot_.set_to_dict("nl_alpha", 1.0);
+      robot_.set_to_dict("nl_K1", 0.0);
+      robot_.set_to_dict("nl_K2", 0.0);
+      robot_.set_to_dict("nl_voltage_min", 0.0);
+      robot_.set_to_dict("nl_voltage_max", 3.3);
     }
   }
 };
