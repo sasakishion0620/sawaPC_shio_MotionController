@@ -1118,7 +1118,7 @@ if (count >= update_interval_count)
         return;
       }
 
-      std::fprintf(fp, "time,Vin,Force\n");
+      std::fprintf(fp, "time,Vin,Pw,Force\n");
       std::printf(
         "[step_response_mode] started: csv=%s, zero_time=%.6f, step=%.6f, max=%.6f, end=%.6f\n",
         file_path.c_str(), initial_zero_time, step_input_value, max_value, record_end_time);
