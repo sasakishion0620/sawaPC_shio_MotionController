@@ -172,7 +172,6 @@ hold on;
 plot(u_fit,y_fit,"LineWidth",2);
 grid on;
 
-「
 xlabel("入力振幅 u");
 ylabel("定常値 y_\infty")
 title("定常値の非線形モデル");

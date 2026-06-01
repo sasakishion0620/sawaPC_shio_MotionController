@@ -1,12 +1,12 @@
 {
-  "A": -24.88,
-  "B": 0.003,
-  "C": 17.09,
-  "alpha": 5.66,
-  "k": 5.66,
+  "A": -37.83,
+  "B": 0.001,
+  "C": 32.93,
+  "alpha": 7.31,
+  "k": 7.31,
   "K1": 10.0,
   "K2": 10.0,
   "voltage_min": 0.0,
   "voltage_max": 3.3,
-  "record_file_name": "nonlinear_control_10N.csv"
+  "record_file_name": "nonlinear_control_6N.csv"
 }
