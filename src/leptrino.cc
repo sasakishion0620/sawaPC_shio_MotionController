@@ -1,7 +1,7 @@
 #include "leptrino.h"
 
 #ifndef LEPTRINO_DEVICE_PATH
-#define LEPTRINO_DEVICE_PATH "/dev/ttyACM1"
+#define LEPTRINO_DEVICE_PATH "/dev/ttyACM0"
 #endif
 
 // ----------------------------------------------------------------------------------
