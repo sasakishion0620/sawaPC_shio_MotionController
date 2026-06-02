@@ -3,7 +3,7 @@
 #include "thread_controller.h"
 #include "leptrino.h"
 #ifdef PCI_MODE
-# include "contec_counter.h"
+// # include "contec_counter.h"
 # include "contec_da.h"
 #endif
 
@@ -18,10 +18,10 @@ int main()
   motion_control_system.add_end();
 
 #ifdef PCI_MODE
-  contec_counter<double> counter1(0, 1, motion_control_system.get_robot(), "../config/contec_counter1.json");
+  // contec_counter<double> counter1(0, 1, motion_control_system.get_robot(), "../config/contec_counter1.json");
   contec_da<double> da(0, 1, motion_control_system.get_robot(), "../config/contec_da1.json", 2);
   leptrino force_sensor;
-  motion_control_system.add_reader(&counter1);
+  // motion_control_system.add_reader(&counter1);
   motion_control_system.add_writer(&da);
   try
   {
