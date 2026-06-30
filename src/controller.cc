@@ -658,7 +658,7 @@ controller[mc::NONLINEAR_EMS] = [](robot_system &robot)
 
   if (fp == nullptr)
   {
-    const std::string data_dir = "../data/2026_06_03"; //////////////////////////////////////////////////////////
+    const std::string data_dir = "../data/2026_06_30"; //////////////////////////////////////////////////////////
 
     mkdir(data_dir.c_str(), 0755);
 
@@ -926,7 +926,7 @@ if (count >= update_interval_count)
       if (record_count <= 0) record_count = 10;
       if (final_step_index < 0) final_step_index = 0;
 
-      const std::string data_dir = "../data/2026_06_03";/////////////////////////////////////////////////////////////////////
+      const std::string data_dir = "../data/2026_06_30";/////////////////////////////////////////////////////////////////////
 
       mkdir(data_dir.c_str(), 0755);////c言語形式の文字列，権限
       const std::string file_path = data_dir + "/" + record_file_name;
@@ -962,6 +962,7 @@ if (count >= update_interval_count)
     if (time_count > 0 && time_count % step_count == 0)
     {
       Vin += voltage_step;
+      Vin = 3.3;
 
       if (Vin > voltage_max)
         Vin = voltage_max;
@@ -1107,7 +1108,7 @@ if (count >= update_interval_count)
       if (record_end_time <= 0.0) record_end_time = initial_zero_time + 1.0;
       if (record_count <= 0) record_count = 10;
 
-      const std::string data_dir = "../data/2026_06_03";////////////////////////////////////////////////////////////////////
+      const std::string data_dir = "../data/2026_06_30";////////////////////////////////////////////////////////////////////
       mkdir(data_dir.c_str(), 0755);
       const std::string file_path = data_dir + "/" + record_file_name;
       fp = fopen(file_path.c_str(), "w");
