@@ -2,7 +2,7 @@
   "type": "constant",
   "type_options": ["constant", "sin", "trapezoid"],
 
-  "value": 10.0,
+  "value": 13.0,
 
   "offset": 4.0,
   "amplitude": 1.0,
