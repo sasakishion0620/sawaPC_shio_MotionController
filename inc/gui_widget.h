@@ -1,6 +1,7 @@
 #ifndef TELEOPHAND_GUI_WIDGET_H
 #define TELEOPHAND_GUI_WIDGET_H
 #include <iostream>
+#include <cmath>
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
@@ -54,24 +55,29 @@ namespace mc {
       const ImVec4 value_color = force_sensor_connected
         ? ImVec4(0.90f, 0.95f, 0.35f, 1.0f)
         : ImVec4(0.60f, 0.60f, 0.60f, 1.0f);
-      const char *labels[6] = {"Fx", "Fy", "Fz", "Mx", "My", "Mz"};
-      const double values[6] = {
+      const double force_norm = std::sqrt(
+        robot_system_ptr->joints.at(0).data[mc::response][mc::Fx] * robot_system_ptr->joints.at(0).data[mc::response][mc::Fx] +
+        robot_system_ptr->joints.at(0).data[mc::response][mc::Fy] * robot_system_ptr->joints.at(0).data[mc::response][mc::Fy] +
+        robot_system_ptr->joints.at(0).data[mc::response][mc::Fz] * robot_system_ptr->joints.at(0).data[mc::response][mc::Fz]);
+      const char *labels[7] = {"Fx", "Fy", "Fz", "|F|", "Mx", "My", "Mz"};
+      const double values[7] = {
         robot_system_ptr->joints.at(0).data[mc::response][mc::Fx],
         robot_system_ptr->joints.at(0).data[mc::response][mc::Fy],
         robot_system_ptr->joints.at(0).data[mc::response][mc::Fz],
+        force_norm,
         robot_system_ptr->joints.at(0).data[mc::response][mc::Mx],
         robot_system_ptr->joints.at(0).data[mc::response][mc::My],
         robot_system_ptr->joints.at(0).data[mc::response][mc::Mz]
       };
 
-      ImGui::Columns(6, "force_sensor_values");
-      for (int i = 0; i < 6; ++i)
+      ImGui::Columns(7, "force_sensor_values");
+      for (int i = 0; i < 7; ++i)
       {
         ImGui::Text("%s", labels[i]);
         ImGui::SetWindowFontScale(1.8f);
         ImGui::TextColored(value_color, "%+.3f", values[i]);
         ImGui::SetWindowFontScale(1.0f);
-        if (i < 5)
+        if (i < 6)
           ImGui::NextColumn();
       }
       ImGui::Columns(1);
@@ -108,7 +114,7 @@ namespace mc {
         return;
       }
 
-      static std::vector<scrolling_buffer> sdata_vec(7);
+      static std::vector<scrolling_buffer> sdata_vec(8);
       static float history = 5.0f;
 
       gui_time += ImGui::GetIO().DeltaTime;
@@ -117,16 +123,18 @@ namespace mc {
       const auto control_mode = robot_system_ptr->get_control_mode();
       const bool is_force_pi_control = control_mode == mc::PI_EMS;
       const bool is_nonlinear_ems = control_mode == mc::NONLINEAR_EMS;
+      const double force_norm = std::sqrt(Fx(0) * Fx(0) + Fy(0) * Fy(0) + Fz(0) * Fz(0));
       sdata_vec[0].add_point(t, static_cast<float>(Fx(0)));
       sdata_vec[1].add_point(t, static_cast<float>(Fy(0)));
       sdata_vec[2].add_point(t, static_cast<float>(Fz(0)));
-      sdata_vec[3].add_point(t, static_cast<float>(Mx(0)));
-      sdata_vec[4].add_point(t, static_cast<float>(My(0)));
-      sdata_vec[5].add_point(t, static_cast<float>(Mz(0)));
+      sdata_vec[3].add_point(t, static_cast<float>(force_norm));
+      sdata_vec[4].add_point(t, static_cast<float>(Mx(0)));
+      sdata_vec[5].add_point(t, static_cast<float>(My(0)));
+      sdata_vec[6].add_point(t, static_cast<float>(Mz(0)));
       const double f_cmd = is_nonlinear_ems
         ? robot_system_ptr->get_from_dict("nonlinear_f_cmd")
         : robot_system_ptr->get_from_dict("force_pi_f_cmd");
-      sdata_vec[6].add_point(t, static_cast<float>(f_cmd));
+      sdata_vec[7].add_point(t, static_cast<float>(f_cmd));
 
       ImPlot::SetNextPlotLimitsX(t - history, t + history, ImGuiCond_Always);
       if (sdata_vec[0].data.size() > 0 && ImPlot::BeginPlot("Force", "time [sec]", "force", ImVec2(-1, 320)))
@@ -135,18 +143,20 @@ namespace mc {
         ImPlot::PlotLine("Fy", &sdata_vec[1].data[0].x, &sdata_vec[1].data[0].y, sdata_vec[1].data.size(), sdata_vec[1].offset, 2*sizeof(float));
         if (force_sensor_connected)
           ImPlot::PlotLine("Fz", &sdata_vec[2].data[0].x, &sdata_vec[2].data[0].y, sdata_vec[2].data.size(), sdata_vec[2].offset, 2*sizeof(float));
+        if (force_sensor_connected)
+          ImPlot::PlotLine("|F|", &sdata_vec[3].data[0].x, &sdata_vec[3].data[0].y, sdata_vec[3].data.size(), sdata_vec[3].offset, 2*sizeof(float));
         if (is_force_pi_control || is_nonlinear_ems)
-          ImPlot::PlotLine("f_cmd", &sdata_vec[6].data[0].x, &sdata_vec[6].data[0].y, sdata_vec[6].data.size(), sdata_vec[6].offset, 2*sizeof(float));
+          ImPlot::PlotLine("f_cmd", &sdata_vec[7].data[0].x, &sdata_vec[7].data[0].y, sdata_vec[7].data.size(), sdata_vec[7].offset, 2*sizeof(float));
         ImPlot::EndPlot();
       }
 
       ImPlot::SetNextPlotLimitsX(t - history, t + history, ImGuiCond_Always);
-      if (sdata_vec[3].data.size() > 0 && ImPlot::BeginPlot("Moment", "time [sec]", "moment", ImVec2(-1, 320)))
+      if (sdata_vec[4].data.size() > 0 && ImPlot::BeginPlot("Moment", "time [sec]", "moment", ImVec2(-1, 320)))
       {
-        ImPlot::PlotLine("Mx", &sdata_vec[3].data[0].x, &sdata_vec[3].data[0].y, sdata_vec[3].data.size(), sdata_vec[3].offset, 2*sizeof(float));
-        ImPlot::PlotLine("My", &sdata_vec[4].data[0].x, &sdata_vec[4].data[0].y, sdata_vec[4].data.size(), sdata_vec[4].offset, 2*sizeof(float));
+        ImPlot::PlotLine("Mx", &sdata_vec[4].data[0].x, &sdata_vec[4].data[0].y, sdata_vec[4].data.size(), sdata_vec[4].offset, 2*sizeof(float));
+        ImPlot::PlotLine("My", &sdata_vec[5].data[0].x, &sdata_vec[5].data[0].y, sdata_vec[5].data.size(), sdata_vec[5].offset, 2*sizeof(float));
         if (force_sensor_connected)
-          ImPlot::PlotLine("Mz", &sdata_vec[5].data[0].x, &sdata_vec[5].data[0].y, sdata_vec[5].data.size(), sdata_vec[5].offset, 2*sizeof(float));
+          ImPlot::PlotLine("Mz", &sdata_vec[6].data[0].x, &sdata_vec[6].data[0].y, sdata_vec[6].data.size(), sdata_vec[6].offset, 2*sizeof(float));
         ImPlot::EndPlot();
       }
     }

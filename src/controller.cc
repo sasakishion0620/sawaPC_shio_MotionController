@@ -10,6 +10,8 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
+#include <cmath>
+
 #define x_res(n) robot.joints[(n)].data[mc::response][mc::x]
 #define dx_res(n) robot.joints[(n)].data[mc::response][mc::dx]
 #define ddx_res(n) robot.joints[(n)].data[mc::response][mc::ddx]
@@ -698,7 +700,7 @@ controller[mc::NONLINEAR_EMS] = [](robot_system &robot)
 
     fprintf(
         fp,
-        "time,u_in,Vin,f_cmd,f_m,eta,v,v_tilde\n");
+        "time,u_in,Vin,f_cmd,f_m,eta,v,v_tilde,Fx,Fy,Fz\n");
 
     printf(
         "New log file created: %s\n",
@@ -723,8 +725,11 @@ controller[mc::NONLINEAR_EMS] = [](robot_system &robot)
     exit(1);
   }
 
-
-  const double f_m = Fz(0);
+  const double f_x = Fx(0);
+  const double f_y = Fy(0);
+  const double f_z = Fz(0);
+  const double f_m = f_z;
+  // const double f_m = std::sqrt(f_x * f_x + f_y * f_y + f_z * f_z);
 
   robot.set_to_dict(
       "nonlinear_measured",
@@ -809,7 +814,7 @@ if (count >= update_interval_count)
     {
       fprintf(
           fp,
-          "%.3f,%lf,%lf,%.6f,%lf,%lf,%lf,%lf\n",
+          "%.3f,%lf,%lf,%.6f,%lf,%lf,%lf,%lf,%lf,%lf,%lf\n",
           time,
           u_in,
           V_in,
@@ -817,7 +822,10 @@ if (count >= update_interval_count)
           f_m,
           robot.get_from_dict("nonlinear_eta"),
           robot.get_from_dict("nonlinear_v"),
-          robot.get_from_dict("nonlinear_v_tilde"));
+          robot.get_from_dict("nonlinear_v_tilde"),
+          f_x,
+          f_y,
+          f_z);
 
       fflush(fp);
     }
@@ -1120,7 +1128,7 @@ if (count >= update_interval_count)
         return;
       }
 
-      std::fprintf(fp, "time,Vin,Pw,Force\n");
+      std::fprintf(fp, "time,Vin,Pw,Force,Fx,Fy,Fz\n");
       std::printf(
         "[step_response_mode] started: csv=%s, zero_time=%.6f, step=%.6f, max=%.6f, end=%.6f\n",
         file_path.c_str(), initial_zero_time, step_input_value, max_value, record_end_time);
@@ -1155,8 +1163,11 @@ if (count >= update_interval_count)
       f_out(i) = 0.0;
       f_vol(i) = 0.0;
     }
-
-    const double measured_force = Fz(0);
+    const double f_x = Fx(0);
+    const double f_y = Fy(0);
+    const double f_z = Fz(0);
+    const double measured_force = f_z;
+    // const double measured_force = std::sqrt(f_x * f_x + f_y * f_y + f_z * f_z);
 
     if (time_count % 10000 == 0)
     {
@@ -1169,7 +1180,16 @@ if (count >= update_interval_count)
 
     if (fp != nullptr && time_count % record_count == 0)
     {
-      std::fprintf(fp, "%.6f,%.6f,%.6f,%.9f\n", time, Vin, Pw, measured_force);
+      std::fprintf(
+        fp,
+        "%.6f,%.6f,%.6f,%.9f,%.9f,%.9f,%.9f\n",
+        time,
+        Vin,
+        Pw,
+        measured_force,
+        f_x,
+        f_y,
+        f_z);
     }
 
     time_count++;
