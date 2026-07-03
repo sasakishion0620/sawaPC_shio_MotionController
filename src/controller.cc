@@ -728,8 +728,9 @@ controller[mc::NONLINEAR_EMS] = [](robot_system &robot)
   const double f_x = Fx(0);
   const double f_y = Fy(0);
   const double f_z = Fz(0);
-  // const double f_m = f_z;
-  const double f_m = std::sqrt(f_x * f_x + f_y * f_y + f_z * f_z);
+
+  const double f_m = f_z;
+  //const double f_m = std::sqrt(f_x * f_x + f_y * f_y + f_z * f_z);
 
   robot.set_to_dict(
       "nonlinear_measured",
@@ -1166,8 +1167,8 @@ if (count >= update_interval_count)
     const double f_x = Fx(0);
     const double f_y = Fy(0);
     const double f_z = Fz(0);
-    // const double measured_force = f_z;
-    const double measured_force = std::sqrt(f_x * f_x + f_y * f_y + f_z * f_z);
+    const double measured_force = f_z;
+    //const double measured_force = std::sqrt(f_x * f_x + f_y * f_y + f_z * f_z);
 
     if (time_count % 10000 == 0)
     {
