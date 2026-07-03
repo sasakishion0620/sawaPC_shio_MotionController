@@ -660,7 +660,7 @@ controller[mc::NONLINEAR_EMS] = [](robot_system &robot)
 
   if (fp == nullptr)
   {
-    const std::string data_dir = "../data/2026_07_01"; //////////////////////////////////////////////////////////
+    const std::string data_dir = "../data/2026_07_03"; //////////////////////////////////////////////////////////
 
     mkdir(data_dir.c_str(), 0755);
 
@@ -728,8 +728,8 @@ controller[mc::NONLINEAR_EMS] = [](robot_system &robot)
   const double f_x = Fx(0);
   const double f_y = Fy(0);
   const double f_z = Fz(0);
-  const double f_m = f_z;
-  // const double f_m = std::sqrt(f_x * f_x + f_y * f_y + f_z * f_z);
+  // const double f_m = f_z;
+  const double f_m = std::sqrt(f_x * f_x + f_y * f_y + f_z * f_z);
 
   robot.set_to_dict(
       "nonlinear_measured",
@@ -934,7 +934,7 @@ if (count >= update_interval_count)
       if (record_count <= 0) record_count = 10;
       if (final_step_index < 0) final_step_index = 0;
 
-      const std::string data_dir = "../data/2026_07_01";/////////////////////////////////////////////////////////////////////
+      const std::string data_dir = "../data/2026_07_03";/////////////////////////////////////////////////////////////////////
 
       mkdir(data_dir.c_str(), 0755);////c言語形式の文字列，権限
       const std::string file_path = data_dir + "/" + record_file_name;
@@ -1116,7 +1116,7 @@ if (count >= update_interval_count)
       if (record_end_time <= 0.0) record_end_time = initial_zero_time + 1.0;
       if (record_count <= 0) record_count = 10;
 
-      const std::string data_dir = "../data/2026_07_01";////////////////////////////////////////////////////////////////////
+      const std::string data_dir = "../data/2026_07_03";////////////////////////////////////////////////////////////////////
       mkdir(data_dir.c_str(), 0755);
       const std::string file_path = data_dir + "/" + record_file_name;
       fp = fopen(file_path.c_str(), "w");
@@ -1166,8 +1166,8 @@ if (count >= update_interval_count)
     const double f_x = Fx(0);
     const double f_y = Fy(0);
     const double f_z = Fz(0);
-    const double measured_force = f_z;
-    // const double measured_force = std::sqrt(f_x * f_x + f_y * f_y + f_z * f_z);
+    // const double measured_force = f_z;
+    const double measured_force = std::sqrt(f_x * f_x + f_y * f_y + f_z * f_z);
 
     if (time_count % 10000 == 0)
     {

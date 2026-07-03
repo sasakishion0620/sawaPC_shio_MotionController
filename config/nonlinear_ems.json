@@ -9,5 +9,5 @@
   "K2": 20.0,
   "voltage_min": 0.0,
   "voltage_max": 3.3,
-  "record_file_name": "nonlinear_control_13N_5_20.csv"
+  "record_file_name": "nonlinear_control_K1=10_test1.csv"
 }
