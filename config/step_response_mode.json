@@ -1,5 +1,5 @@
 {
-  "record_file_name": "step_response_3.0_B.csv",
+  "record_file_name": "step_response_3.0.csv",
   "initial_zero_time": 2.0,
   "step_input_value": 3.0,
   "max_value": 3.3,
