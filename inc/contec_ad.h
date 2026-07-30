@@ -68,8 +68,19 @@ public:
     static int debug_count = 0;
     unsigned int data = 0;
 
+    if (debug_count < 20)
+    {
+      std::printf("[contec_ad] scan start, channels=%zu, base0=%u\n",
+        adreader<T>::number_of_channel_,
+        ad_pci_.base0);
+    }
+
     outw(static_cast<unsigned int>(adreader<T>::number_of_channel_) - 1, ad_pci_.base0 + 0x02);
-    test_busy_status(ad_pci_.base0);
+    if (!test_busy_status(ad_pci_.base0))
+    {
+      std::printf("[contec_ad] busy timeout at base0=%u\n", ad_pci_.base0);
+      return FAIL;
+    }
 
     for (size_t ch = 0; ch < adreader<T>::number_of_channel_; ++ch)
     {
@@ -164,14 +175,22 @@ private:
     outw(0x16, addr + 6);
   }
 
-  void test_busy_status(int addr)
+  bool test_busy_status(int addr)
   {
     int busy_sts;
+    int guard = 1000000;
     do
     {
       busy_sts = inw(addr + 0x02) & 1;
+      guard--;
+      if (guard <= 0)
+      {
+        std::printf("[contec_ad] busy_sts stuck, addr=%d status_reg=%d\n", addr, inw(addr + 0x02));
+        return false;
+      }
     }
     while (busy_sts);
+    return true;
   }
 };
 
