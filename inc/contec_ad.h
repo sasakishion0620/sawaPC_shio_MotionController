@@ -2,6 +2,7 @@
 #define MOTIONCONTROL_CONTEC_AD_H
 
 #include <sys/io.h>
+#include <cstdio>
 #include "adreader.h"
 #include "json_helper.h"
 #include "pci_helper.h"
@@ -41,6 +42,8 @@ public:
 
     std::cout << "[adreader] vendor_id: " << vendor_id << std::endl;
     std::cout << "[adreader] device_id: " << device_id << std::endl;
+    std::cout << "[adreader] board_order: " << board_order << std::endl;
+    std::cout << "[adreader] voltage_range: " << voltage_range_ << std::endl;
     std::cout << "[adreader] io port: " << ad_pci_.base0 << std::endl;
 
     initialize();
@@ -73,13 +76,24 @@ public:
       std::printf("[contec_ad] scan start, channels=%zu, base0=%u\n",
         adreader<T>::number_of_channel_,
         ad_pci_.base0);
+      print_status_snapshot("before start");
     }
 
     outw(static_cast<unsigned int>(adreader<T>::number_of_channel_) - 1, ad_pci_.base0 + 0x02);
+    if (debug_count < 20)
+    {
+      print_status_snapshot("after start command");
+    }
     if (!test_busy_status(ad_pci_.base0))
     {
       std::printf("[contec_ad] busy timeout at base0=%u\n", ad_pci_.base0);
+      print_status_snapshot("busy timeout");
       return FAIL;
+    }
+
+    if (debug_count < 20)
+    {
+      print_status_snapshot("after busy clear");
     }
 
     for (size_t ch = 0; ch < adreader<T>::number_of_channel_; ++ch)
@@ -115,7 +129,9 @@ public:
   {
     std::cout << "started contec ad board" << std::endl;
     iopl(3);
+    print_status_snapshot("before reset");
     reset();
+    print_status_snapshot("after reset");
     std::cout << "AD board reset" << std::endl;
   }
 
@@ -146,6 +162,10 @@ private:
 
   void setting_ad_board(int addr)
   {
+    std::printf("[contec_ad] setting_ad_board addr=%d channels=%zu\n",
+      addr,
+      adreader<T>::number_of_channel_);
+
     outw(0x00, addr + 0x06);
     outw(0x80, addr + 0x07);
     outw(0x00, addr + 0x07);
@@ -168,10 +188,12 @@ private:
     outw(0x00, addr + 0x07);
 
     std::cout << "AD Start" << std::endl;
+    print_status_snapshot("after setting");
   }
 
   void initialize_ad_board(int addr)
   {
+    std::printf("[contec_ad] initialize_ad_board addr=%d\n", addr);
     outw(0x16, addr + 6);
   }
 
@@ -179,9 +201,18 @@ private:
   {
     int busy_sts;
     int guard = 1000000;
+    int loop_count = 0;
     do
     {
       busy_sts = inw(addr + 0x02) & 1;
+      if (loop_count < 5)
+      {
+        std::printf("[contec_ad] busy poll %d raw_status=%d busy=%d\n",
+          loop_count,
+          inw(addr + 0x02),
+          busy_sts);
+      }
+      loop_count++;
       guard--;
       if (guard <= 0)
       {
@@ -191,6 +222,18 @@ private:
     }
     while (busy_sts);
     return true;
+  }
+
+  void print_status_snapshot(const char *label)
+  {
+    const int base = static_cast<int>(ad_pci_.base0);
+    std::printf(
+      "[contec_ad] %s: reg+0x00=%d reg+0x02=%d reg+0x06=%d reg+0x07=%d\n",
+      label,
+      inw(base + 0x00),
+      inw(base + 0x02),
+      inw(base + 0x06),
+      inw(base + 0x07));
   }
 };
 
