@@ -5,6 +5,8 @@
 #include <thread>
 #include <atomic>
 #include <unordered_map>
+#include <algorithm>
+#include <cctype>
 #include "control_timer.h"
 #include "system_controller.h"
 
@@ -135,7 +137,26 @@ private:
     boost::property_tree::ptree pt;
     boost::property_tree::read_json(file_name_, pt);
 
-    auto child_opt = pt.get_child_optional(thread_name);
+    std::string normalized_name = thread_name;
+    normalized_name.erase(
+      std::remove_if(
+        normalized_name.begin(),
+        normalized_name.end(),
+        [](unsigned char c)
+        {
+          return std::isspace(c) || c == ':';
+        }),
+      normalized_name.end());
+
+    static int debug_name_count = 0;
+    if (debug_name_count < 20)
+    {
+      std::cout << "[thread_config debug] raw=[" << thread_name
+                << "] normalized=[" << normalized_name << "]" << std::endl;
+      debug_name_count++;
+    }
+
+    auto child_opt = pt.get_child_optional(normalized_name);
     if (child_opt)
     {
       auto node = child_opt.get();
@@ -144,7 +165,7 @@ private:
 
       if (sampling_frequency_node && is_single_loop_node)
       {
-        ret.thread_name = thread_name;
+        ret.thread_name = normalized_name;
         ret.sampling_frequency = sampling_frequency_node.get();
         ret.is_single_loop = is_single_loop_node.get();
         print_config(ret);
@@ -152,8 +173,8 @@ private:
       }
     }
     std::cerr << "[Warning:]" << std::endl;
-    std::cerr << "\t" << thread_name << " is not exist in " << file_name_ << std::endl;
-    if (std::string(thread_name) == "default")
+    std::cerr << "\t" << normalized_name << " is not exist in " << file_name_ << std::endl;
+    if (normalized_name == "default")
     {
       std::cerr << "[Error:]" << std::endl;
       std::cerr << "\tno default config." << std::endl;
