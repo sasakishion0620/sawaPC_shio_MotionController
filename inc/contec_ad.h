@@ -49,7 +49,17 @@ public:
 
   int adread()
   {
+    static int debug_count = 0;
+    if (debug_count < 20)
+    {
+      std::printf("[contec_ad] entered adread()\n");
+    }
     adreader<T>::adread();
+    if (debug_count < 20)
+    {
+      std::printf("[contec_ad] leaving adread()\n");
+      debug_count++;
+    }
     return SUCCESS;
   }
 
