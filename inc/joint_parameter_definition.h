@@ -28,6 +28,7 @@ namespace mc {
     Mx,
     My,
     Mz,
+    ad_raw_count,
     ad_voltage,
     state_size
   };

@@ -17,6 +17,7 @@ public:
   : start_channel_(start_channel),
     number_of_channel_(number_of_channel),
     adread_data_ptr_(number_of_channel_),
+    adread_raw_ptr_(number_of_channel_),
     adread_state_(adread_state)
   {
     register_adread_data(robot);
@@ -35,6 +36,7 @@ public:
   virtual void initialize() = 0;
   virtual void close() = 0;
   T *channel_ptr(size_t i){ return adread_data_ptr_[i]; }
+  T *raw_channel_ptr(size_t i){ return adread_raw_ptr_[i]; }
 
 protected:
   size_t start_channel_;
@@ -44,6 +46,7 @@ protected:
 private:
   static int device_id_;
   std::vector<T*> adread_data_ptr_;
+  std::vector<T*> adread_raw_ptr_;
 
   void register_adread_data(robot_system *robot)
   {
@@ -60,6 +63,8 @@ private:
     {
       adread_data_ptr_.at(i) =
         &(robot->joints.at(start_channel_ + i).data[mc::response][adread_state_]);
+      adread_raw_ptr_.at(i) =
+        &(robot->joints.at(start_channel_ + i).data[mc::response][mc::ad_raw_count]);
     }
   }
 };

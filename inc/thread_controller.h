@@ -148,14 +148,6 @@ private:
         }),
       normalized_name.end());
 
-    static int debug_name_count = 0;
-    if (debug_name_count < 20)
-    {
-      std::cout << "[thread_config debug] raw=[" << thread_name
-                << "] normalized=[" << normalized_name << "]" << std::endl;
-      debug_name_count++;
-    }
-
     auto child_opt = pt.get_child_optional(normalized_name);
     if (child_opt)
     {
