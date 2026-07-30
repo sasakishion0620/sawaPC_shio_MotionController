@@ -152,7 +152,7 @@ void mc::control::register_controller()
       fp = fopen(file_path.c_str(), "w");
       if (fp != nullptr)
       {
-        fprintf(fp, "time,rawEMG,RMS_EMG\n");
+        fprintf(fp, "time,ad0,ad1,rawEMG,RMS_EMG\n");
       }
       else
       {
@@ -163,7 +163,9 @@ void mc::control::register_controller()
     const double t = time_count * 0.0001;
 
     double sumSq = 0.0;
-    const double rawEMG = ad_voltage(0) - 1.5;
+    const double ad0 = ad_voltage(0);
+    const double ad1 = robot.joints.size() > 1 ? ad_voltage(1) : 0.0;
+    const double rawEMG = ad0 - 1.5;
     EMG[time_count % 1000] = rawEMG;
     for (int i = 0; i < 1000; i++)
     {
@@ -173,12 +175,13 @@ void mc::control::register_controller()
 
     if (time_count % 1000 == 0)
     {
-      printf("time = %.3f, rawEMG = %lf, RMS_EMG = %lf\n", t, rawEMG, RMS_EMG);
+      printf("time = %.3f, ad0 = %lf, ad1 = %lf, rawEMG = %lf, RMS_EMG = %lf\n",
+        t, ad0, ad1, rawEMG, RMS_EMG);
     }
 
     if (fp != nullptr && time_count % 10 == 0)
     {
-      fprintf(fp, "%.4f,%lf,%lf\n", t, rawEMG, RMS_EMG);
+      fprintf(fp, "%.4f,%lf,%lf,%lf,%lf\n", t, ad0, ad1, rawEMG, RMS_EMG);
       fflush(fp);
     }
 
