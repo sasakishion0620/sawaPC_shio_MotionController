@@ -1,6 +1,7 @@
 #include "controller.h"
 #include "control_timer.h"
 #include "force_target_generator.h"
+#include "gui.h"
 #include "thread_definition.h"
 #include <cstdlib>
 #include <cstdio>
@@ -131,6 +132,17 @@ void mc::control::register_controller()
     static FILE *fp = nullptr;
     static int time_count = 0;
     static double EMG[1000] = {0.0};
+
+    if (gui_force_exit_requested())
+    {
+      if (fp != nullptr)
+      {
+        fclose(fp);
+        fp = nullptr;
+      }
+      robot.control_mode_request = mc::idle;
+      return;
+    }
 
     if (robot.step() == 0)
     {
