@@ -83,11 +83,13 @@ public:
     if (debug_count < 20)
     {
       print_status_snapshot("after start command");
+      print_register_window("after start command");
     }
     if (!test_busy_status(ad_pci_.base0))
     {
       std::printf("[contec_ad] busy timeout at base0=%u\n", ad_pci_.base0);
       print_status_snapshot("busy timeout");
+      print_register_window("busy timeout");
       return FAIL;
     }
 
@@ -130,8 +132,10 @@ public:
     std::cout << "started contec ad board" << std::endl;
     iopl(3);
     print_status_snapshot("before reset");
+    print_register_window("before reset");
     reset();
     print_status_snapshot("after reset");
+    print_register_window("after reset");
     std::cout << "AD board reset" << std::endl;
   }
 
@@ -189,6 +193,7 @@ private:
 
     std::cout << "AD Start" << std::endl;
     print_status_snapshot("after setting");
+    print_register_window("after setting");
   }
 
   void initialize_ad_board(int addr)
@@ -234,6 +239,24 @@ private:
       inw(base + 0x02),
       inw(base + 0x06),
       inw(base + 0x07));
+  }
+
+  void print_register_window(const char *label)
+  {
+    static int dump_count = 0;
+    if (dump_count >= 12)
+      return;
+
+    const int base = static_cast<int>(ad_pci_.base0);
+    std::printf("[contec_ad] %s register window:\n", label);
+    for (int offset = 0; offset <= 0x10; offset += 2)
+    {
+      std::printf("  reg+0x%02X = %5d (0x%04X)\n",
+        offset,
+        inw(base + offset),
+        static_cast<unsigned int>(inw(base + offset)) & 0xFFFF);
+    }
+    dump_count++;
   }
 };
 
