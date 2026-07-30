@@ -260,7 +260,7 @@ private:
 
     const int base = static_cast<int>(ad_pci_.base0);
     std::printf("[contec_ad] %s register window:\n", label);
-    for (int offset = 0; offset <= 0x10; offset += 2)
+    for (int offset = 0; offset <= 0x1E; offset += 2)
     {
       const unsigned int word_value = static_cast<unsigned int>(inw(base + offset)) & 0xFFFF;
       std::printf("  reg+0x%02X = %5d (0x%04X)%s\n",
