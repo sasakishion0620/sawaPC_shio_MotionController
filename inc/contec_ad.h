@@ -55,6 +55,7 @@ public:
 
   int scan()
   {
+    static int debug_count = 0;
     unsigned int data = 0;
 
     outw(static_cast<unsigned int>(adreader<T>::number_of_channel_) - 1, ad_pci_.base0 + 0x02);
@@ -65,6 +66,19 @@ public:
       data = inw(ad_pci_.base0);
       *(adreader<T>::channel_ptr(ch)) =
         static_cast<double>(data) / ad_resolution_decimal_ * voltage_range_ - voltage_range_ / 2;
+
+      if (debug_count < 20)
+      {
+        std::printf("[contec_ad] ch=%zu raw=%u volt=%lf\n",
+          ch,
+          data,
+          *(adreader<T>::channel_ptr(ch)));
+      }
+    }
+
+    if (debug_count < 20)
+    {
+      debug_count++;
     }
 
     return adreader<T>::number_of_channel_;
