@@ -1,6 +1,7 @@
 #include "system_controller.h"
 #include "control_timer.h"
 
+#define ad_voltage(n) robot_.joints[(n)].data[mc::response][mc::ad_voltage]
 #define   x_res(n) robot_.joints[(n)].data[mc::response][mc::x]
 #define  dx_res(n) robot_.joints[(n)].data[mc::response][mc::dx]
 #define ddx_res(n) robot_.joints[(n)].data[mc::response][mc::ddx]
@@ -99,6 +100,16 @@ void system_controller::task_registration()
     for (size_t i = 0; i < writers_ptr_.size(); ++i)
     {
       writers_ptr_[i]->write();
+    }
+    return system_controller::ON;
+  };
+
+  tasks_[::adread_sensor] = [this](ll sample_frequency)
+  {
+    (void)(sample_frequency);
+    for (size_t i = 0; i < adreaders_ptr_.size(); ++i)
+    {
+      adreaders_ptr_[i]->adread();
     }
     return system_controller::ON;
   };

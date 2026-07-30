@@ -4,6 +4,7 @@ namespace mc {
     idle,
     DA_check,
     ForceOffsetInit,
+    EMG_iden,
     // remote,
     Record,
     // Bilateral,

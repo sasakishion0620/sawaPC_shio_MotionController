@@ -28,6 +28,7 @@ namespace mc {
     Mx,
     My,
     Mz,
+    ad_voltage,
     state_size
   };
 

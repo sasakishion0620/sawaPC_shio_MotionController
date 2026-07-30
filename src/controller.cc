@@ -12,6 +12,7 @@
 
 #include <cmath>
 
+#define ad_voltage(n) robot.joints[(n)].data[mc::response][mc::ad_voltage]
 #define x_res(n) robot.joints[(n)].data[mc::response][mc::x]
 #define dx_res(n) robot.joints[(n)].data[mc::response][mc::dx]
 #define ddx_res(n) robot.joints[(n)].data[mc::response][mc::ddx]
@@ -117,6 +118,76 @@ void mc::control::register_controller()
 
       robot.control_mode_request = mc::idle;
     }
+  };
+
+
+
+
+
+  //筋電モード
+  controller[mc::EMG_iden] = [](robot_system &robot)
+  {
+    static FILE *fp = nullptr;
+    static int time_count = 0;
+    static double EMG[1000] = {0.0};
+
+    if (robot.step() == 0)
+    {
+      if (fp != nullptr)
+      {
+        fclose(fp);
+        fp = nullptr;
+      }
+
+      time_count = 0;
+      for (double &v : EMG)
+      {
+        v = 0.0;
+      }
+
+      const std::string data_dir = "../data";
+      mkdir(data_dir.c_str(), 0755);
+
+      const std::string file_path = data_dir + "/emg_iden.csv";
+      fp = fopen(file_path.c_str(), "w");
+      if (fp != nullptr)
+      {
+        fprintf(fp, "time,rawEMG,RMS_EMG\n");
+      }
+      else
+      {
+        printf("Error: Could not create file %s\n", file_path.c_str());
+      }
+    }
+
+    const double t = time_count * 0.0001;
+
+    double sumSq = 0.0;
+    const double rawEMG = ad_voltage(0) - 1.5;
+    EMG[time_count % 1000] = rawEMG;
+    for (int i = 0; i < 1000; i++)
+    {
+      sumSq += EMG[i] * EMG[i];
+    }
+    const double RMS_EMG = sqrt(sumSq / 1000.0);
+
+    if (time_count % 1000 == 0)
+    {
+      printf("time = %.3f, rawEMG = %lf, RMS_EMG = %lf\n", t, rawEMG, RMS_EMG);
+    }
+
+    if (fp != nullptr && time_count % 10 == 0)
+    {
+      fprintf(fp, "%.4f,%lf,%lf\n", t, rawEMG, RMS_EMG);
+      fflush(fp);
+    }
+
+    for (size_t i = 0; i < robot.joints.size(); ++i)
+    {
+      f_out(i) = 0.0;
+    }
+
+    time_count++;
   };
 
 /*  // remote mode: inverse kinematics + PD control + DOB compensation

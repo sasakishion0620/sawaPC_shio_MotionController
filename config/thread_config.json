@@ -11,6 +11,10 @@
     "sampling_frequency":10,
     "is_single_loop":1
   },
+  "adread_sensor":{
+    "sampling_frequency":10,
+    "is_single_loop":1
+  },
   "record_motion":{
     "sampling_frequency":10,
     "is_single_loop":1

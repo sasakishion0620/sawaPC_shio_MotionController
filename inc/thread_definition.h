@@ -8,6 +8,7 @@ namespace thread {
     compute_engine,
     read_sensor,
     write_output,
+    adread_sensor,
     record_motion,
     recv_command,
     leptrino_read,

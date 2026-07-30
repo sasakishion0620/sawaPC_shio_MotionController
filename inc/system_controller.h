@@ -10,6 +10,7 @@
 #include "gui.h"
 #include "reader.h"
 #include "writer.h"
+#include "adreader.h"
 #include "leptrino.h"
 #include "signal_processing.h"
 #include "control_timer.h"
@@ -96,6 +97,12 @@ public:
     writers_ptr_.push_back(writer_ptr);
   }
 
+  virtual void add_adreader(adreader<double> *adreader_ptr)
+  {
+    std::cout << "added adreader" << std::endl;
+    adreaders_ptr_.push_back(adreader_ptr);
+  }
+
   virtual void init_leptrino(leptrino *force_sensor_ptr)
   {
     leptrino_ptr_ = force_sensor_ptr;
@@ -119,6 +126,8 @@ public:
       readers_ptr_[i]->close();
     for (size_t i = 0; i < writers_ptr_.size(); ++i)
       writers_ptr_[i]->close();
+    for (size_t i = 0; i < adreaders_ptr_.size(); ++i)
+      adreaders_ptr_[i]->close();
     if (leptrino_ptr_ != nullptr)
       leptrino_ptr_->App_Close();
     udp_receiver_.close();
@@ -130,6 +139,7 @@ private:
   mc::udp_receiver udp_receiver_;
   std::vector<reader<double>*> readers_ptr_;
   std::vector<writer<double>*> writers_ptr_;
+  std::vector<adreader<double>*> adreaders_ptr_;
   leptrino *leptrino_ptr_ = nullptr;
 
 #define f_out(n) robot_.joints[(n)].data[mc::output][mc::f]
