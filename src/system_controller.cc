@@ -107,6 +107,12 @@ void system_controller::task_registration()
   tasks_[::adread_sensor] = [this](ll sample_frequency)
   {
     (void)(sample_frequency);
+    static int debug_count = 0;
+    if (debug_count < 10)
+    {
+      std::printf("[adread_sensor] task loop %d\n", debug_count);
+      debug_count++;
+    }
     for (size_t i = 0; i < adreaders_ptr_.size(); ++i)
     {
       adreaders_ptr_[i]->adread();

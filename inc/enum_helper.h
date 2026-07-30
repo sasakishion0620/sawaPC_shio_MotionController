@@ -52,6 +52,8 @@ namespace mc {
         auto pos = ret.rfind("::");
         if (pos != std::string::npos)
           ret = ret.substr(pos + 1);
+        while (!ret.empty() && ret.front() == ':')
+          ret.erase(ret.begin());
         return ret;
     }
   };
