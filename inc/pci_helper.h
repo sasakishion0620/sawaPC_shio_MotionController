@@ -30,6 +30,31 @@ public:
     }
     std::sort(pci_devs.begin(), pci_devs.end(), [](pci_dev *a, pci_dev *b)
     {return a->bus < b->bus;});
+
+    std::cout << "[pci_helper] matched devices for vendor=0x"
+              << std::hex << vendor
+              << " device=0x" << device
+              << std::dec << std::endl;
+    for (size_t i = 0; i < pci_devs.size(); ++i)
+    {
+      pci_dev *dev = pci_devs[i];
+      std::cout << "[pci_helper] idx=" << i
+                << " bus=" << static_cast<int>(dev->bus)
+                << " dev=" << static_cast<int>(dev->dev)
+                << " func=" << static_cast<int>(dev->func)
+                << std::endl;
+      for (int bar = 0; bar < 6; ++bar)
+      {
+        std::cout << "  [pci_helper] BAR" << bar
+                  << "=0x" << std::hex << dev->base_addr[bar]
+                  << std::dec << std::endl;
+      }
+    }
+
+    std::cout << "[pci_helper] selecting order=" << order
+              << " using BAR0=0x" << std::hex << pci_devs[order]->base_addr[0]
+              << " => io_port=0x" << (pci_devs[order]->base_addr[0] - 1)
+              << std::dec << std::endl;
     io_port = static_cast<unsigned int>(pci_devs[order]->base_addr[0] - 1);
     pci_cleanup(p_access);
     return io_port;
