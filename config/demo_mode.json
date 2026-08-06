@@ -1,0 +1,6 @@
+{
+  "static_RMS": 0.02,
+  "active_RMS": 0.10,
+  "Pw_th": 120.0,
+  "Pw_max": 300.0
+}

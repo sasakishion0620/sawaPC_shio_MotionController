@@ -5,6 +5,7 @@ namespace mc {
     DA_check,
     ForceOffsetInit,
     EMG_iden,
+    demo,
     // remote,
     Record,
     // Bilateral,

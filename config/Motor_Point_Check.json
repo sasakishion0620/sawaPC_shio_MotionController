@@ -1,5 +1,5 @@
 {
-  "record_file_name": "model_test.csv",
+  "record_file_name": "motor_point_check_test.csv",
   "end_time": 10.0,
   "pulse_width_min": 0.0,
   "pulse_width_max": 500.0,

@@ -154,6 +154,7 @@ void mc::control::register_controller()
       }
 
       time_count = 0;
+
       for (double &v : EMG)
       {
         v = 0.0;
@@ -166,7 +167,7 @@ void mc::control::register_controller()
       fp = fopen(file_path.c_str(), "w");
       if (fp != nullptr)
       {
-        fprintf(fp, "time,ad0_raw,ad1_raw,ad0_voltage,ad1_voltage,rawEMG,RMS_EMG\n");
+        fprintf(fp, "time,rawEMG,RMS_EMG\n");
       }
       else
       {
@@ -177,27 +178,25 @@ void mc::control::register_controller()
     const double t = time_count * 0.0001;
 
     double sumSq = 0.0;
-    const double ad0_raw = ad_raw_count(0);
-    const double ad1_raw = robot.joints.size() > 1 ? ad_raw_count(1) : 0.0;
-    const double ad0 = ad_voltage(0);
-    const double ad1 = robot.joints.size() > 1 ? ad_voltage(1) : 0.0;
-    const double rawEMG = ad0 - 1.5;
+    const double rawEMG = ad_voltage(0) - 1.5;
+
     EMG[time_count % 1000] = rawEMG;
+    
     for (int i = 0; i < 1000; i++)
     {
       sumSq += EMG[i] * EMG[i];
     }
     const double RMS_EMG = sqrt(sumSq / 1000.0);
 
-    if (time_count % 1000 == 0)
+    if (time_count % 5000 == 0)
     {
-      printf("time = %.3f, ad0_raw = %.0f, ad1_raw = %.0f, ad0_voltage = %lf, ad1_voltage = %lf, rawEMG = %lf, RMS_EMG = %lf\n",
-        t, ad0_raw, ad1_raw, ad0, ad1, rawEMG, RMS_EMG);
+      printf("time = %.3f, rawEMG = %lf, RMS_EMG = %lf\n",
+        t, rawEMG, RMS_EMG);
     }
 
     if (fp != nullptr && time_count % 10 == 0)
     {
-      fprintf(fp, "%.4f,%.0f,%.0f,%lf,%lf,%lf,%lf\n", t, ad0_raw, ad1_raw, ad0, ad1, rawEMG, RMS_EMG);
+      fprintf(fp, "%.4f,%.6f,%.6f\n", t, rawEMG, RMS_EMG);
       fflush(fp);
     }
 
@@ -205,6 +204,160 @@ void mc::control::register_controller()
     {
       f_out(i) = 0.0;
     }
+
+    time_count++;
+  };
+
+  controller[mc::demo] = [](robot_system &robot)
+    {
+      static long long time_count = 0;
+        static constexpr int RMS_window_size = 1000;
+        static double EMG[RMS_window_size] = {0.0};
+      static double static_RMS = 0.0;
+      static double active_RMS = 0.0;
+      static double Pw_th = 0.0;
+      static double Pw_max = 0.0;
+      static double slope = 0.0;
+
+    auto output_zero = [&robot]()
+    {
+      for (size_t i = 0; i < robot.joints.size(); ++i)
+      {
+        f_ref(i) = 0.0;
+        f_out(i) = 0.0;
+        f_vol(i) = 0.0;
+      }
+
+      robot.set_to_dict("da_ch1_voltage", 0.0);
+      robot.set_to_dict("ems_voltage", 0.0);
+          robot.set_to_dict("demo_raw_EMG", 0.0);
+          robot.set_to_dict("demo_RMS_EMG", 0.0);
+      robot.set_to_dict("demo_pw", 0.0);
+      robot.set_to_dict("demo_v_in", 0.0);
+    };
+
+    if (gui_force_exit_requested())
+    {
+      output_zero();
+      robot.control_mode_request = mc::idle;
+      return;
+    }
+
+      if (robot.step() == 0)
+      {
+        time_count = 0;
+
+        for (double &value : EMG)
+        {
+          value = 0.0;
+        }
+
+      try
+      {
+        boost::property_tree::ptree pt;
+        boost::property_tree::read_json("../config/demo_mode.json", pt);
+        static_RMS = pt.get<double>("static_RMS", static_RMS);
+        active_RMS = pt.get<double>("active_RMS", active_RMS);
+        Pw_th = pt.get<double>("Pw_th", Pw_th);
+        Pw_max = pt.get<double>("Pw_max", Pw_max);
+      }
+      catch (...)
+      {
+        std::cerr << "[demo] demo_mode.json not found, using defaults" << std::endl;
+      }
+
+      if (active_RMS < static_RMS)
+      {
+        std::swap(active_RMS, static_RMS);
+      }
+      if (Pw_max < Pw_th)
+      {
+        std::swap(Pw_max, Pw_th);
+      }
+
+        const double RMS_range = active_RMS - static_RMS;
+        if (std::abs(RMS_range) > 1e-9)
+        {
+          slope = (Pw_max - Pw_th) / RMS_range;
+        }
+      else
+      {
+        slope = 0.0;
+      }
+
+      output_zero();
+
+      std::printf(
+        "[demo] started: static_RMS=%.6f, active_RMS=%.6f, Pw_th=%.3f, Pw_max=%.3f\n",
+        static_RMS, active_RMS, Pw_th, Pw_max);
+    }
+
+
+  
+      const double control_dt = 0.0001;
+      const double time = static_cast<double>(time_count) * control_dt;
+        const double raw_EMG = ad_voltage(0) - 1.5;
+        double sum_sq = 0.0;
+  
+        EMG[time_count % RMS_window_size] = raw_EMG;
+        for (int i = 0; i < RMS_window_size; ++i)
+        {
+          sum_sq += EMG[i] * EMG[i];
+        }
+  
+        double RMS_EMG = std::sqrt(sum_sq / static_cast<double>(RMS_window_size));
+
+      double Pw = 0.0;
+      
+      if (RMS_EMG > static_RMS)
+      {
+        Pw = Pw_th + slope * (RMS_EMG - static_RMS);
+        if (Pw < Pw_th)
+        {
+          Pw = Pw_th;
+      }
+      if (Pw > Pw_max)
+      {
+        Pw = Pw_max;
+      }
+      }
+
+      else
+      {
+        Pw = 0.0;
+      }
+
+    double Vin = Pw * 3.3 / 500.0;
+    
+    if (Vin < 0.0)
+    {
+      Vin = 0.0;
+    }
+    if (Vin > 3.3)
+    {
+      Vin = 3.3;
+    }
+
+    for (size_t i = 0; i < robot.joints.size(); ++i)
+    {
+      f_ref(i) = 0.0;
+      f_out(i) = 0.0;
+      f_vol(i) = 0.0;
+    }
+
+      robot.set_to_dict("da_ch1_voltage", Vin);
+      robot.set_to_dict("ems_voltage", Vin);
+        robot.set_to_dict("demo_raw_EMG", raw_EMG);
+        robot.set_to_dict("demo_RMS_EMG", RMS_EMG);
+      robot.set_to_dict("demo_pw", Pw);
+      robot.set_to_dict("demo_v_in", Vin);
+
+      if (time_count % 1000 == 0)
+      {
+        std::printf(
+            "time=%.3f, rawEMG=%.6f, RMS_EMG=%.6f, Pw=%.3f, Vin=%.3f\n",
+            time, raw_EMG, RMS_EMG, Pw, Vin);
+        }
 
     time_count++;
   };
@@ -991,7 +1144,7 @@ if (count >= update_interval_count)
 
 
 
-
+//モータポイントチェックモード
   controller[mc::Motor_Point_Check] = [](robot_system &robot)
   {
     static FILE *fp = nullptr;
