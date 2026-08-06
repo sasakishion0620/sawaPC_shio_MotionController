@@ -10,7 +10,7 @@ namespace mc {
     // Bilateral,
     // Angle_EMS,
     PI_EMS,
-    ModelDataRecord,
+    Motor_Point_Check,
     step_response_mode,
     NONLINEAR_EMS,
     control_mode_size

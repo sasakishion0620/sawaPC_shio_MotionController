@@ -11,6 +11,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
+#include <algorithm>
 #include <cmath>
 
 #define ad_raw_count(n) robot.joints[(n)].data[mc::response][mc::ad_raw_count]
@@ -654,10 +655,10 @@ void mc::control::register_controller()
 
 
 
-
+//非線形制御モード
 controller[mc::NONLINEAR_EMS] = [](robot_system &robot)
 {
-
+  constexpr double max_duration_sec = 10.0;
 
   static double V_in = 0.0;
   static double u_in = 0.0;
@@ -669,6 +670,20 @@ controller[mc::NONLINEAR_EMS] = [](robot_system &robot)
   static ForceTargetGenerator force_target;
 
   constexpr int update_interval_count = 10;
+
+  auto output_zero = [&robot]()
+  {
+    for (size_t i = 0; i < robot.joints.size(); ++i)
+    {
+      f_ref(i) = 0.0;
+      f_out(i) = 0.0;
+      f_vol(i) = 0.0;
+    }
+
+    robot.set_to_dict("da_ch1_voltage", 0.0);
+    robot.set_to_dict("ems_voltage", 0.0);
+    robot.set_to_dict("nonlinear_v_in", 0.0);
+  };
 
   //パラメータ読み込み
   //モデルパラメータ
@@ -726,10 +741,17 @@ controller[mc::NONLINEAR_EMS] = [](robot_system &robot)
     const double fallback_f_cmd =
         robot.get_from_dict("nonlinear_f_cmd");
 
+    if (fp != nullptr)
+    {
+      fclose(fp);
+      fp = nullptr;
+    }
+
     V_in = 0.0;
     u_in = 0.0;
     count = 0;
     time_count = 0;
+    output_zero();
 
     force_target.load(
         "../config/force_target.json",
@@ -920,6 +942,20 @@ if (count >= update_interval_count)
       fflush(fp);
     }
   }
+
+  if (static_cast<double>(time_count) * control_dt >= max_duration_sec)
+  {
+    if (fp != nullptr)
+    {
+      fflush(fp);
+      fclose(fp);
+      fp = nullptr;
+    }
+
+    output_zero();
+    std::printf("[NONLINEAR_EMS] finished after %.1f sec. exiting.\n", max_duration_sec);
+    exit(0);
+  }
 };
 
 
@@ -956,19 +992,21 @@ if (count >= update_interval_count)
 
 
 
-  controller[mc::ModelDataRecord] = [](robot_system &robot)
+  controller[mc::Motor_Point_Check] = [](robot_system &robot)
   {
     static FILE *fp = nullptr;
     static long long time_count = 0;
+    static double Pw = 0.0;
     static double Vin = 0.0;
 
     //jsonが読めなかった時のデフォルト値，初期の値
     static std::string record_file_name = "default_test.csv";
-    static double voltage_step = 0.2;
-    static double voltage_max = 3.3;
-    static long long step_count = 30000; // 10 kHz * 3 sec
-    static long long record_count = 10;  // 10 kHz / 10 = 1 kHz
-    static long long final_step_index = 16; // 0.0, 0.2, ..., 3.2
+    static double end_time = 10.0;
+    static double Pw_min = 0.0;
+    static double Pw_max = 500.0;
+    static double Vmin = 0.0;
+    static double Vmax = 3.3;
+    static long long record_interval_samples = 10;
 
 
     //auto      → 型は自動で決めて,[&robot]  → 外のrobotを中でも使わせて
@@ -983,6 +1021,8 @@ if (count >= update_interval_count)
       robot.set_to_dict("da_ch1_voltage", 0.0);
       robot.set_to_dict("ems_voltage", 0.0);
       robot.set_to_dict("voltage_step_v_in", 0.0);
+      robot.set_to_dict("motor_point_check_pw", 0.0);
+      robot.set_to_dict("motor_point_check_v_in", 0.0);
     };
     
     //初回だけ実行する処理
@@ -995,34 +1035,38 @@ if (count >= update_interval_count)
       }
 
       time_count = 0;
+      Pw = 0.0;
       Vin = 0.0;
       output_zero();
 
       try
       {
         boost::property_tree::ptree pt;
-        boost::property_tree::read_json("../config/model_data_record.json", pt);
+        boost::property_tree::read_json("../config/Motor_Point_Check.json", pt);
         record_file_name = pt.get<std::string>("record_file_name", record_file_name);
-        voltage_step = pt.get<double>("voltage_step", voltage_step);
-        voltage_max = pt.get<double>("voltage_max", voltage_max);
-        step_count = pt.get<long long>("step_count", step_count);
-        record_count = pt.get<long long>("record_count", record_count);
-        final_step_index = pt.get<long long>("final_step_index", final_step_index);//右側はなかったときの値
+        end_time = pt.get<double>("end_time", end_time);
+        Pw_min = pt.get<double>("pulse_width_min", Pw_min);
+        Pw_max = pt.get<double>("pulse_width_max", Pw_max);
+        Vmin = pt.get<double>("voltage_min", Vmin);
+        Vmax = pt.get<double>("voltage_max", Vmax);
+        record_interval_samples = pt.get<long long>("record_interval_samples", record_interval_samples);
       }
 
       catch (...)
       {
-        std::cerr << "[model_data_record] model_data_record.json not found, using defaults" << std::endl;
+        std::cerr << "[Motor_Point_Check] Motor_Point_Check.json not found, using defaults" << std::endl;
       }
       
       //設定値の補正
       if (record_file_name.size() < 4 || record_file_name.substr(record_file_name.size() - 4) != ".csv")
         record_file_name += ".csv";
-      if (voltage_step <= 0.0) voltage_step = 0.2;
-      if (voltage_max < 0.0) voltage_max = 0.0;
-      if (step_count <= 0) step_count = 30000;
-      if (record_count <= 0) record_count = 10;
-      if (final_step_index < 0) final_step_index = 0;
+      if (end_time <= 0.0) end_time = 10.0;
+      if (Pw_max < Pw_min) std::swap(Pw_min, Pw_max);
+      if (Vmax < Vmin) std::swap(Vmin, Vmax);
+      if (record_interval_samples <= 0) record_interval_samples = 10;
+
+      Pw = Pw_min;
+      Vin = Vmin;
 
       const std::string data_dir = "../data/2026_07_15";/////////////////////////////////////////////////////////////////////
 
@@ -1032,18 +1076,27 @@ if (count >= update_interval_count)
 
       if (fp == nullptr)
       {
-        std::printf("[model_data_record] failed to create csv: %s\n", file_path.c_str());
+        std::printf("[Motor_Point_Check] failed to create csv: %s\n", file_path.c_str());
         robot.control_mode_request = mc::idle;
         return;
       }
 
-      std::fprintf(fp, "time,Vin,Force\n");
-      std::printf("[model_data_record] started: csv=%s\n", file_path.c_str());
+      std::fprintf(fp, "time,Pw,Vin,Force\n");
+      std::printf(
+        "[Motor_Point_Check] started: csv=%s, duration=%.3f, pw_min=%.3f, pw_max=%.3f\n",
+        file_path.c_str(), end_time, Pw_min, Pw_max);
     }
 
-    const long long finish_count = (final_step_index + 1) * step_count;
+    double control_dt = robot.get_from_dict("dt");
+    if (control_dt <= 0.0)
+    {
+      control_dt = 0.0001;
+    }
 
-    if (time_count >= finish_count)
+    const double time = static_cast<double>(time_count) * control_dt;
+    const double slope = (Pw_max - Pw_min) / end_time;
+
+    if (time >= end_time)
     {
       if (fp != nullptr)
       {
@@ -1053,19 +1106,36 @@ if (count >= update_interval_count)
       }
 
       output_zero();
-      std::printf("[model_data_record] finished. exiting.\n");
+      std::printf("[Motor_Point_Check] finished. exiting.\n");
       exit(0);
     }
 
-    if (time_count > 0 && time_count % step_count == 0)
+    if (time_count % 10 == 0)
     {
-      Vin += voltage_step;
-      Vin = 3.3;
+      Pw = Pw + slope * (control_dt * 10.0);
 
-      if (Vin > voltage_max)
-        Vin = voltage_max;
+      if (Pw < Pw_min)
+      {
+        Pw = Pw_min;
+      }
+      if (Pw > Pw_max)
+      {
+        Pw = Pw_max;
+      }
+
+      Vin = Pw * 3.3 / 500.0;
     }
 
+    if (Vin < Vmin)
+    {
+      Vin = Vmin;
+    }
+    if (Vin > Vmax)
+    {
+      Vin = Vmax;
+    }
+
+    //joint出力を１回初期化することで，前回の制御モードの出力が残らないようにする
     for (size_t i = 0; i < robot.joints.size(); ++i)
     {
       f_ref(i) = 0.0;
@@ -1074,20 +1144,25 @@ if (count >= update_interval_count)
     }
 
     const double measured_force = Fz(0);
-    if (time_count % 10000 == 0)
+
+    if (time_count % 1000 == 0)
     {
-      const double time = static_cast<double>(time_count) / 10000.0;
-      std::printf("time=%.3f, Vin=%.3f, Force=%.6f\n", time, Vin, measured_force);
+      std::printf(
+        "time=%.3f, Pw=%.3f, Vin=%.3f, Force=%.6f\n",
+        time, Pw, Vin, measured_force);
     }
 
     robot.set_to_dict("da_ch1_voltage", Vin);
     robot.set_to_dict("ems_voltage", Vin);
     robot.set_to_dict("voltage_step_v_in", Vin);
+    robot.set_to_dict("motor_point_check_pw", Pw);
+    robot.set_to_dict("motor_point_check_v_in", Vin);
 
-    if (fp != nullptr && time_count % record_count == 0)
+    if (fp != nullptr && time_count % 10 == 0)
     {
-      const double time = static_cast<double>(time_count) / 10000.0;
-      std::fprintf(fp, "%.6f,%.6f,%.9f\n", time, Vin, measured_force);
+      std::fprintf(
+        fp, "%.6f,%.6f,%.6f,%.9f\n",
+        time, Pw, Vin, measured_force);
     }
 
     time_count++;
@@ -1140,7 +1215,7 @@ if (count >= update_interval_count)
 
 
 
-  
+  //ステップ応答モード
   controller[mc::step_response_mode] = [](robot_system &robot)
   {
     //宣言と初期値

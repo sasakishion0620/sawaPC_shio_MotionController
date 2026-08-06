@@ -1,0 +1,9 @@
+{
+  "record_file_name": "model_test.csv",
+  "end_time": 10.0,
+  "pulse_width_min": 0.0,
+  "pulse_width_max": 500.0,
+  "voltage_min": 0.0,
+  "voltage_max": 3.3,
+  "record_interval_samples": 10
+}
