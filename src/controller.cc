@@ -1374,12 +1374,24 @@ if (count >= update_interval_count)
     //宣言と初期値
     static FILE *fp = nullptr;
     static long long time_count = 0;
+
     static std::string record_file_name = "step_response.csv";
-    static double initial_zero_time = 1.0;
-    static double step_input_value = 1.0;
+
+    static double rest_time = 5.0;   // 休憩時間
+    static double step_time = 5.0;   // ステップ入力を出す時間
+
+    static std::vector<double> step_values = {
+        0.8,
+        1.6,
+        2.4,
+        3.0
+    };
+
     static double max_value = 3.3;
-    static double record_end_time = 5.0;
+    static double record_end_time = 45.0;
     static long long record_count = 10;
+
+
 
     auto output_zero = [&robot]()
     {
@@ -1395,6 +1407,7 @@ if (count >= update_interval_count)
     };
 
     double control_dt = robot.get_from_dict("dt");
+
     if (control_dt <= 0.0)
     {
       control_dt = 0.0001;
@@ -1415,13 +1428,24 @@ if (count >= update_interval_count)
       {
         boost::property_tree::ptree pt;
         boost::property_tree::read_json("../config/step_response_mode.json", pt);
+
+        // 基本設定を読み込む
         record_file_name = pt.get<std::string>("record_file_name", record_file_name);
-        initial_zero_time = pt.get<double>("initial_zero_time", initial_zero_time);
-        step_input_value = pt.get<double>("step_input_value", step_input_value);
+        rest_time = pt.get<double>("rest_time", rest_time);
+        step_time = pt.get<double>("step_time", step_time);
         max_value = pt.get<double>("max_value", max_value);
         record_end_time = pt.get<double>("record_end_time", record_end_time);
         record_count = pt.get<long long>("record_count", record_count);
+
+       // ステップ入力の値と順番を読み込む
+        step_values.clear();
+
+        for (const auto &item : pt.get_child("step_values"))
+        {
+          step_values.push_back(item.second.get_value<double>());
+        }
       }
+
       catch (...)
       {
         std::cerr << "[step_response_mode] step_response_mode.json not found, using defaults" << std::endl;
@@ -1429,9 +1453,13 @@ if (count >= update_interval_count)
 
       if (record_file_name.size() < 4 || record_file_name.substr(record_file_name.size() - 4) != ".csv")
         record_file_name += ".csv";
-      if (initial_zero_time < 0.0) initial_zero_time = 0.0;
+      
+
+     //読み込み値の補正
+      if (rest_time < 0.0) rest_time = 0.0;
+      if (step_time <= 0.0) step_time = 5.0;
       if (max_value < 0.0) max_value = 0.0;
-      if (record_end_time <= 0.0) record_end_time = initial_zero_time + 1.0;
+      if (record_end_time <= 0.0) record_end_time = 45.0;
       if (record_count <= 0) record_count = 10;
 
       const std::string data_dir = "../data/2026_07_15";////////////////////////////////////////////////////////////////////
@@ -1446,7 +1474,7 @@ if (count >= update_interval_count)
         return;
       }
 
-      std::fprintf(fp, "time,Vin,Pw,Force,Fx,Fy,Fz\n");
+      std::fprintf(fp, "time,Vin,Pw,Force,Fx,Fy,Fz\n");////////csvのラベル
       std::printf(
         "[step_response_mode] started: csv=%s, zero_time=%.6f, step=%.6f, max=%.6f, end=%.6f\n",
         file_path.c_str(), initial_zero_time, step_input_value, max_value, record_end_time);
@@ -1468,12 +1496,53 @@ if (count >= update_interval_count)
       exit(0);
     }
 
-    double Vin = (time < initial_zero_time) ? 0.0 : step_input_value;
-    double Pw = Vin * 500/3.3;
-    
+    double Vin = 0.0;
 
+    if (time < 5.0)
+    {
+        Vin = 0.0;                 // 休憩
+    }
+    else if (time < 10.0)
+    {
+        Vin = step_values[0];      // 1回目
+    }
+    else if (time < 15.0)
+    {
+        Vin = 0.0;                 // 休憩
+    }
+    else if (time < 20.0)
+    {
+        Vin = step_values[1];      // 2回目
+    }
+    else if (time < 25.0)
+    {
+        Vin = 0.0;                 // 休憩
+    }
+    else if (time < 30.0)
+    {
+        Vin = step_values[2];      // 3回目
+    }
+    else if (time < 35.0)
+    {
+        Vin = 0.0;                 // 休憩
+    }
+    else if (time < 40.0)
+    {
+        Vin = step_values[3];      // 4回目
+    }
+    else
+    {
+        Vin = 0.0;                 // 最後の休憩
+    }
+
+    // 0 ～ max_value に制限
     if (Vin > max_value) Vin = max_value;
     if (Vin < 0.0) Vin = 0.0;
+
+    // 電圧 → パルス幅
+    double Pw = Vin * 500.0 / 3.3;
+    
+  
 
     for (size_t i = 0; i < robot.joints.size(); ++i)
     {
@@ -1481,6 +1550,7 @@ if (count >= update_interval_count)
       f_out(i) = 0.0;
       f_vol(i) = 0.0;
     }
+    
     const double f_x = Fx(0);
     const double f_y = Fy(0);
     const double f_z = Fz(0);
