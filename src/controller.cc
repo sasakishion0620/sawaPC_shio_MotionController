@@ -59,6 +59,7 @@ void mc::control::register_controller()
     for (size_t i = 0; i < robot.joints.size(); ++i)
     {
       f_out(i) = 0.0;
+      robot.set_to_dict("da_ch1_voltage", f_out(i));
     }
   };
 
@@ -66,7 +67,8 @@ void mc::control::register_controller()
   {
     for (size_t i = 0; i < robot.joints.size(); ++i)
     {
-      f_out(i) = 0.3;
+      f_out(i) = 3.0;
+      robot.set_to_dict("da_ch1_voltage", f_out(i));
     }
   };
 
@@ -924,7 +926,7 @@ controller[mc::NONLINEAR_EMS] = [](robot_system &robot)
 
   if (fp == nullptr)
   {
-    const std::string data_dir = "../data/2026_07_15"; //////////////////////////////////////////////////////////
+    const std::string data_dir = "../data/2026_09_15"; //////////////////////////////////////////////////////////
 
     mkdir(data_dir.c_str(), 0755);
 
@@ -1221,7 +1223,7 @@ if (count >= update_interval_count)
       Pw = Pw_min;
       Vin = Vmin;
 
-      const std::string data_dir = "../data/2026_07_15";/////////////////////////////////////////////////////////////////////
+      const std::string data_dir = "../data/2026_09_15";/////////////////////////////////////////////////////////////////////
 
       mkdir(data_dir.c_str(), 0755);////c言語形式の文字列，権限
       const std::string file_path = data_dir + "/" + record_file_name;
@@ -1462,7 +1464,7 @@ if (count >= update_interval_count)
       if (record_end_time <= 0.0) record_end_time = 45.0;
       if (record_count <= 0) record_count = 10;
 
-      const std::string data_dir = "../data/2026_07_15";////////////////////////////////////////////////////////////////////
+      const std::string data_dir = "../data/2026_09_15";////////////////////////////////////////////////////////////////////
       mkdir(data_dir.c_str(), 0755);
       const std::string file_path = data_dir + "/" + record_file_name;
       fp = fopen(file_path.c_str(), "w");
@@ -1477,7 +1479,7 @@ if (count >= update_interval_count)
       std::fprintf(fp, "time,Vin,Pw,Force,Fx,Fy,Fz\n");////////csvのラベル
       std::printf(
         "[step_response_mode] started: csv=%s, zero_time=%.6f, step=%.6f, max=%.6f, end=%.6f\n",
-        file_path.c_str(), initial_zero_time, step_input_value, max_value, record_end_time);
+        file_path.c_str(), rest_time, step_time, max_value, record_end_time);
     }
 
     const double time = static_cast<double>(time_count) * control_dt;

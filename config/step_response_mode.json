@@ -1,15 +1,10 @@
 {
-  "record_file_name": "step_response.csv",
+  "record_file_name": "step_response1234_5.csv",
 
   "rest_time": 5.0,
   "step_time": 5.0,
 
-  "step_values": [
-    0.8,
-    1.6,
-    2.4,
-    3.0
-  ],
+  "step_values": [0.8, 1.6, 2.4, 3.0],
 
   "max_value": 3.3,
   "record_end_time": 45.0,

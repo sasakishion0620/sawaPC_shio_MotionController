@@ -16,7 +16,7 @@ if(USE_PCI_MODE)
 endif()
 
 option(ENABLE_FORCE_SENSOR_COM_CHECK "Run Leprino COM connection check during build" ON)
-set(FORCE_SENSOR_DEVICE "/dev/ttyACM1" CACHE STRING "Leprino force sensor serial device path")
+set(FORCE_SENSOR_DEVICE "/dev/ttyACM0" CACHE STRING "Leprino force sensor serial device path")
 
 # if not defined then timer will not wait.
 add_definitions(-DREALTIME)
