@@ -1223,7 +1223,7 @@ if (count >= update_interval_count)
       Pw = Pw_min;
       Vin = Vmin;
 
-      const std::string data_dir = "../data/2026_09_15";/////////////////////////////////////////////////////////////////////
+      const std::string data_dir = "../data/2026_09_16";/////////////////////////////////////////////////////////////////////
 
       mkdir(data_dir.c_str(), 0755);////c言語形式の文字列，権限
       const std::string file_path = data_dir + "/" + record_file_name;
@@ -1459,12 +1459,12 @@ if (count >= update_interval_count)
 
      //読み込み値の補正
       if (rest_time < 0.0) rest_time = 0.0;
-      if (step_time <= 0.0) step_time = 5.0;
+      if (step_time <= 0.0) step_time = 0.0;
       if (max_value < 0.0) max_value = 0.0;
-      if (record_end_time <= 0.0) record_end_time = 45.0;
+      if (record_end_time <= 0.0) record_end_time = 0.0;
       if (record_count <= 0) record_count = 10;
 
-      const std::string data_dir = "../data/2026_09_15";////////////////////////////////////////////////////////////////////
+      const std::string data_dir = "../data/2026_09_16";////////////////////////////////////////////////////////////////////
       mkdir(data_dir.c_str(), 0755);
       const std::string file_path = data_dir + "/" + record_file_name;
       fp = fopen(file_path.c_str(), "w");
@@ -1520,18 +1520,18 @@ if (count >= update_interval_count)
     {
         Vin = 0.0;                 // 休憩
     }
-    else if (time < 30.0)
-    {
-        Vin = step_values[2];      // 3回目
-    }
-    else if (time < 35.0)
-    {
-        Vin = 0.0;                 // 休憩
-    }
-    else if (time < 40.0)
-    {
-        Vin = step_values[3];      // 4回目
-    }
+    // else if (time < 30.0)
+    // {
+    //     Vin = step_values[2];      // 3回目
+    // }
+    // else if (time < 35.0)
+    // {
+    //     Vin = 0.0;                 // 休憩
+    // }
+    // else if (time < 40.0)
+    // {
+    //     Vin = step_values[3];      // 4回目
+    // }
     else
     {
         Vin = 0.0;                 // 最後の休憩
