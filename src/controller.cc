@@ -1223,7 +1223,7 @@ if (count >= update_interval_count)
       Pw = Pw_min;
       Vin = Vmin;
 
-      const std::string data_dir = "../data/2026_09_17";/////////////////////////////////////////////////////////////////////
+      const std::string data_dir = "../data/2026_09_18";/////////////////////////////////////////////////////////////////////
 
       mkdir(data_dir.c_str(), 0755);////c言語形式の文字列，権限
       const std::string file_path = data_dir + "/" + record_file_name;
@@ -1464,7 +1464,7 @@ if (count >= update_interval_count)
       if (record_end_time <= 0.0) record_end_time = 0.0;
       if (record_count <= 0) record_count = 10;
 
-      const std::string data_dir = "../data/2026_09_17";////////////////////////////////////////////////////////////////////
+      const std::string data_dir = "../data/2026_09_18";////////////////////////////////////////////////////////////////////
       mkdir(data_dir.c_str(), 0755);
       const std::string file_path = data_dir + "/" + record_file_name;
       fp = fopen(file_path.c_str(), "w");
